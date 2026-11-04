@@ -1,0 +1,15 @@
+{
+ "shops": [
+  {
+   "id": "mvm8co3w",
+   "name": "Ankit Jewellers",
+   "phone": "8052933285",
+   "key": "SONE-1A2F-8209-08F9",
+   "status": "active",
+   "deviceId": "966f8ed3-d787-4b6b-9972-d67dfb7cb79a",
+   "lastSeen": 1793774875201,
+   "paidUntil": 1800612146444,
+   "bkDevice": "966f8ed3-d787-4b6b-9972-d67dfb7cb79a"
+  }
+ ]
+}

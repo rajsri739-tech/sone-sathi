@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Sone Sathi – Admin Panel & License Manager</title>
+<style>
+:root{color-scheme:light}
+body{font:14px system-ui,sans-serif;margin:20px;background:#faf6ec;color:#2a2418;max-width:1300px;margin:20px auto}
+h1{color:#b07d00;margin:0 0 12px 0;display:flex;align-items:center;gap:8px}
+.card{background:#fff;border:1px solid #dcd1be;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:18px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{border-bottom:1px solid #e0d7c5;padding:8px 6px;text-align:left;vertical-align:middle}
+th{background:#f4ece0;font-weight:700}
+input,select{padding:7px 10px;border:1px solid #c9bda5;border-radius:6px;font-size:13px}
+button{background:#b07d00;color:#fff;border:0;border-radius:6px;padding:6px 12px;margin:2px;cursor:pointer;font-weight:600;font-size:12px}
+button:hover{opacity:0.9}
+button.d{background:#c5221f}
+button.g{background:#e8f0fe;color:#1a73e8;border:1px solid #cce0ff}
+button.s{background:#f1f3f4;color:#333;border:1px solid #ccc}
+.ok{color:#137333;font-weight:600}
+.bad{color:#c5221f;font-weight:600}
+code{user-select:all;background:#f3efe6;padding:2px 5px;border-radius:4px;font-family:monospace;font-size:13px;color:#855d00;font-weight:700}
+.w{overflow-x:auto}
+.logo-thumb{max-height:42px;max-width:90px;object-fit:contain;border:1px solid #d4af37;border-radius:4px;background:#fff;padding:2px}
+.form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:6px}
+.f-group{display:flex;flex-direction:column;gap:3px}
+.f-group label{font-size:12px;font-weight:600;color:#555}
+</style>
+</head>
+<body>
+<h1>💎 Sone Sathi – Admin Panel & Shop License Manager</h1>
+
+<!-- 1. NAYI DUKAAN REGISTER KAREIN (WITH LOGO) -->
+<div class="card">
+  <b>🏢 Nayi Dukaan Register Karein (With Shop Logo & Details)</b>
+  <div class="form-row">
+    <div class="f-group" style="flex:1.5;min-width:160px">
+      <label>Dukaan ka Naam</label>
+      <input id="nm" placeholder="e.g. Shree Sone Sathi Jewellers">
+    </div>
+    <div class="f-group" style="flex:1;min-width:120px">
+      <label>Mobile Number</label>
+      <input id="ph" placeholder="10-digit mobile">
+    </div>
+    <div class="f-group" style="flex:1.5;min-width:160px">
+      <label>Pata / Shahar (Address)</label>
+      <input id="addr" placeholder="e.g. Main Sarafa Bazar, Chowk">
+    </div>
+    <div class="f-group" style="flex:1;min-width:130px">
+      <label>GSTIN No. (Optional)</label>
+      <input id="gst" placeholder="GSTIN number">
+    </div>
+    <div class="f-group" style="width:85px">
+      <label>Validity</label>
+      <input id="mo" type="number" value="1" title="Kitne mahine">
+    </div>
+  </div>
+
+  <div class="form-row" style="margin-top:12px;align-items:center">
+    <div class="f-group" style="flex:2;min-width:240px">
+      <label><b>🖼️ Dukaan ka Logo & Bill Watermark</b> (Admin se set karein)</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="file" id="adm_logo_input" accept="image/*" onchange="handleAdminLogoFile(event)" style="font-size:12px">
+        <button type="button" class="s" onclick="setAdminDefaultLogo()" title="Royal Jewellery Default Logo Set Karein">✨ Royal Logo</button>
+        <button type="button" class="s" onclick="clearAdminLogo()" title="Logo Hatao">✕</button>
+      </div>
+    </div>
+    <div id="adm_logo_prev" style="min-width:100px">
+      <span style="font-size:12px;color:#777">Koi logo chuna nahi hai</span>
+    </div>
+    <div style="margin-left:auto">
+      <button onclick="addShop()" style="font-size:13px;padding:8px 16px">+ Nayi Dukaan Register Karein</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. REGISTERED SHOPS TABLE -->
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <b>📋 Registered Shops & Licenses</b>
+    <span id="st" style="font-weight:600;color:#555"></span>
+  </div>
+  <div class="w">
+    <table>
+      <thead>
+        <tr>
+          <th>Dukaan & Sampark</th>
+          <th>Logo / Watermark</th>
+          <th>License Key</th>
+          <th>Payment Tak</th>
+          <th>Status</th>
+          <th>Last Online</th>
+          <th>Cloud Backup</th>
+          <th style="text-align:right">Action</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Hidden file input for changing existing shop's logo -->
+<input type="file" id="change_logo_input" accept="image/*" style="display:none" onchange="commitChangeLogo(event)">
+
+<script>
+const $ = i => document.getElementById(i);
+let currentLogoData = null;
+let currentTargetShopId = null;
+
+const DEFAULT_ROYAL_LOGO = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 140' width='520' height='140'>
+  <defs>
+    <linearGradient id='gGrad' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#FFE57F'/>
+      <stop offset='30%' stop-color='#FFD700'/>
+      <stop offset='70%' stop-color='#D4AF37'/>
+      <stop offset='100%' stop-color='#9E7016'/>
+    </linearGradient>
+    <linearGradient id='dGold' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#D4AF37'/>
+      <stop offset='100%' stop-color='#694605'/>
+    </linearGradient>
+  </defs>
+  <g transform='translate(15, 10)'>
+    <circle cx='60' cy='60' r='54' fill='none' stroke='url(#gGrad)' stroke-width='3.5'/>
+    <circle cx='60' cy='60' r='48' fill='none' stroke='url(#dGold)' stroke-width='1.2' stroke-dasharray='3 2'/>
+    <path d='M60 26 L66 40 L78 36 L72 52 L84 56 L60 84 L36 56 L48 52 L42 36 L54 40 Z' fill='url(#gGrad)' stroke='#634200' stroke-width='0.8'/>
+    <polygon points='60,42 66,54 78,60 66,66 60,78 54,66 42,60 54,54' fill='#FFFFFF' opacity='0.95'/>
+    <circle cx='60' cy='60' r='3.5' fill='url(#gGrad)'/>
+    <circle cx='38' cy='42' r='2.2' fill='url(#gGrad)'/>
+    <circle cx='82' cy='42' r='2.2' fill='url(#gGrad)'/>
+    <path d='M44 88 Q60 96 76 88' fill='none' stroke='url(#gGrad)' stroke-width='2' stroke-linecap='round'/>
+  </g>
+  <g transform='translate(144, 22)'>
+    <text x='0' y='22' font-family='serif, "Noto Serif Devanagari", Georgia' font-size='15' font-weight='bold' fill='url(#dGold)' letter-spacing='3'>॥ श्री सोने साथी ज्वेलर्स ॥</text>
+    <text x='0' y='55' font-family='"Cinzel", "Playfair Display", serif, Georgia' font-size='26' font-weight='900' fill='url(#gGrad)' letter-spacing='1.5' stroke='#543700' stroke-width='0.4'>SHREE SONE SATHI</text>
+    <text x='0' y='77' font-family='sans-serif' font-size='13' font-weight='800' fill='#2D3748' letter-spacing='6'>JEWELLERS</text>
+    <line x1='0' y1='87' x2='345' y2='87' stroke='url(#gGrad)' stroke-width='1.5'/>
+    <polygon points='172,85 175,87 172,89 169,87' fill='url(#gGrad)'/>
+    <text x='0' y='102' font-family='sans-serif' font-size='9.5' font-weight='600' fill='#718096' letter-spacing='2'>100% BIS HALLMARK JEWELLERY • ESTD 1995</text>
+  </g>
+</svg>`);
+
+const call = (u, m, b) => fetch(u, {
+  method: m || 'GET',
+  headers: { 'Content-Type': 'application/json' },
+  body: b ? JSON.stringify(b) : undefined
+}).then(r => r.json());
+
+const dt = t => t ? new Date(t).toLocaleDateString('en-IN') + ' ' + new Date(t).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-';
+
+function handleAdminLogoFile(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 500, maxH = 200;
+      let w = img.width, h = img.height;
+      if(w > maxW || h > maxH){
+        const ratio = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      currentLogoData = cv.toDataURL('image/png');
+      updateAdminLogoPrev();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setAdminDefaultLogo(){
+  currentLogoData = DEFAULT_ROYAL_LOGO;
+  updateAdminLogoPrev();
+}
+
+function clearAdminLogo(){
+  currentLogoData = null;
+  if($('adm_logo_input')) $('adm_logo_input').value = '';
+  updateAdminLogoPrev();
+}
+
+function updateAdminLogoPrev(){
+  const p = $('adm_logo_prev');
+  if(!p) return;
+  if(currentLogoData){
+    p.innerHTML = `<img src="${currentLogoData}" class="logo-thumb"><br><span class="ok" style="font-size:11px">✓ Logo Set</span>`;
+  } else {
+    p.innerHTML = `<span style="font-size:12px;color:#777">Koi logo chuna nahi hai</span>`;
+  }
+}
+
+async function load(){
+  const a = await call('/api/admin/shops');
+  const now = Date.now();
+  let act = 0, due = 0;
+  
+  $('tb').innerHTML = a.map(s => {
+    const exp = s.paidUntil < now, sus = s.status === 'suspended';
+    if(!exp && !sus) act++;
+    if(exp) due++;
+
+    const logoHtml = s.logo 
+      ? `<div>
+           <img src="${s.logo}" class="logo-thumb"><br>
+           <button class="g" style="padding:2px 6px;font-size:11px" onclick="triggerChangeLogo('${s.id}')">✏️ Badlein</button>
+           <button class="s" style="padding:2px 6px;font-size:11px;color:#c00" onclick="removeShopLogo('${s.id}')">✕</button>
+         </div>`
+      : `<div style="color:#777;font-size:12px">
+           <span>Logo nahi hai</span><br>
+           <button class="g" style="padding:2px 6px;font-size:11px" onclick="triggerChangeLogo('${s.id}')">+ Logo Jodein</button>
+           <button class="s" style="padding:2px 6px;font-size:11px" onclick="setShopRoyalLogo('${s.id}')">✨ Royal</button>
+         </div>`;
+
+    return `
+      <tr>
+        <td>
+          <b>${s.name}</b><br>
+          <span style="color:#555">📞 ${s.phone || '-'}</span><br>
+          <small style="color:#777">${s.address || '-'}${s.gstin ? ' | GST: ' + s.gstin : ''}</small>
+        </td>
+        <td style="white-space:nowrap">${logoHtml}</td>
+        <td><code>${s.key}</code><br><span style="font-size:11px;color:#666">${s.deviceId ? '💻 Active Device Linked' : 'Khali (Abhi install nahi hua)'}</span></td>
+        <td class="${exp ? 'bad' : 'ok'}">${new Date(s.paidUntil).toLocaleDateString('en-IN')}</td>
+        <td>${sus ? '🚫 Suspended' : exp ? '⏰ Payment Baaki' : '✅ Active'}</td>
+        <td>${dt(s.lastSeen)}</td>
+        <td>${s.bk ? dt(s.bk.time) + ' (' + Math.round(s.bk.size / 1024) + ' KB)<br><a href="/api/admin/shops/' + s.id + '/backup/' + s.bk.name + '">Download</a>' : '—'}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button onclick="x('${s.id}','extend',1)">+1 Mahina</button>
+          <button onclick="x('${s.id}','extend',3)">+3</button>
+          <button onclick="x('${s.id}','${sus ? 'resume' : 'suspend'}')">${sus ? 'Chalu karo' : 'Band karo'}</button>
+          <button onclick="x('${s.id}','reset')" title="Computer badalne ke liye device reset">Device Reset</button>
+          <button class="d" onclick="del('${s.id}')">✕</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  $('st').textContent = `Kul ${a.length} dukaan · ${act} chalu · ${due} ki payment baaki`;
+}
+
+const x = async(id, a, m) => { await call(`/api/admin/shops/${id}/${a}`, 'POST', { months: m }); load(); };
+const del = async id => { if(confirm('Pakka hatana hai?')){ await call('/api/admin/shops/' + id, 'DELETE'); load(); } };
+
+async function addShop(){
+  const nm = $('nm').value.trim();
+  if(!nm){ alert('Dukaan ka naam likhein'); return; }
+
+  await call('/api/admin/shops', 'POST', {
+    name: nm,
+    phone: $('ph').value.trim(),
+    address: $('addr').value.trim(),
+    gstin: $('gst').value.trim(),
+    months: $('mo').value,
+    logo: currentLogoData
+  });
+
+  $('nm').value = $('ph').value = $('addr').value = $('gst').value = '';
+  clearAdminLogo();
+  load();
+  alert('✅ Nayi Dukaan safaltapoorvak register ho gayi hai!\nLicense Key generate ho chuki hai.');
+}
+
+function triggerChangeLogo(shopId){
+  currentTargetShopId = shopId;
+  $('change_logo_input').click();
+}
+
+function commitChangeLogo(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file || !currentTargetShopId) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = async () => {
+      const maxW = 500, maxH = 200;
+      let w = img.width, h = img.height;
+      if(w > maxW || h > maxH){
+        const ratio = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = cv.toDataURL('image/png');
+      await call(`/api/admin/shops/${currentTargetShopId}/logo`, 'POST', { logo: dataUrl });
+      load();
+      alert('✅ Dukaan ka logo update ho gaya!');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function setShopRoyalLogo(shopId){
+  if(!confirm('Is dukaan par Royal Jewellery default logo lagana chahte hain?')) return;
+  await call(`/api/admin/shops/${shopId}/logo`, 'POST', { logo: DEFAULT_ROYAL_LOGO });
+  load();
+}
+
+async function removeShopLogo(shopId){
+  if(!confirm('Dukaan ka logo hatana chahte hain?')) return;
+  await call(`/api/admin/shops/${shopId}/logo`, 'POST', { logo: null });
+  load();
+}
+
+load();
+</script>
+</body>
+</html>
