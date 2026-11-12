@@ -89,6 +89,7 @@ code{user-select:all;background:#f3efe6;padding:2px 5px;border-radius:4px;font-f
           <th>Dukaan & Sampark</th>
           <th>Logo / Watermark</th>
           <th>License Key</th>
+          <th>🔑 Recovery Key</th>
           <th>Payment Tak</th>
           <th>Status</th>
           <th>Last Online</th>
@@ -227,6 +228,16 @@ async function load(){
         </td>
         <td style="white-space:nowrap">${logoHtml}</td>
         <td><code>${s.key}</code><br><span style="font-size:11px;color:#666">${s.deviceId ? '💻 Active Device Linked' : 'Khali (Abhi install nahi hua)'}</span></td>
+        <td>
+          ${s.recoveryKey ? `
+            <div style="display:flex;align-items:center;gap:6px">
+              <code style="font-size:13px;letter-spacing:1px;font-weight:700;background:#e6f4ea;color:#137333;padding:4px 8px;border:1px solid #ceead6;border-radius:5px">${s.recoveryKey}</code>
+              <button class="s" onclick="copyRecovery('${s.recoveryKey}')" title="Recovery Key Copy Karein" style="padding:2px 6px;font-size:11px">📋 Copy</button>
+            </div>
+          ` : `
+            <span style="color:#888;font-size:12px;font-style:italic">Abhi nahi bani</span>
+          `}
+        </td>
         <td class="${exp ? 'bad' : 'ok'}">${new Date(s.paidUntil).toLocaleDateString('en-IN')}</td>
         <td>${sus ? '🚫 Suspended' : exp ? '⏰ Payment Baaki' : '✅ Active'}</td>
         <td>${dt(s.lastSeen)}</td>
@@ -309,6 +320,14 @@ async function removeShopLogo(shopId){
   if(!confirm('Dukaan ka logo hatana chahte hain?')) return;
   await call(`/api/admin/shops/${shopId}/logo`, 'POST', { logo: null });
   load();
+}
+
+function copyRecovery(k){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(k).then(() => alert('✅ Recovery Key Copy Ho Gayi:\n' + k)).catch(() => prompt('Recovery Key Copy Karein:', k));
+  } else {
+    prompt('Recovery Key Copy Karein:', k);
+  }
 }
 
 load();
