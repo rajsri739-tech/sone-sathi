@@ -15,12 +15,16 @@ const app=express();app.use(express.json({limit:'50mb'}));
 
 // ---- shop app calls this ----
 app.post('/api/license/check',(req,res)=>{
-  const {key,deviceId}=req.body||{},d=load(),s=d.shops.find(x=>x.key===key);
+  const {key,deviceId,recoveryKey}=req.body||{},d=load(),s=d.shops.find(x=>x.key===key);
   if(!s)return res.status(404).json({error:'Key galat hai'});
   if(s.status==='suspended')return res.status(403).json({error:'Account band hai. Provider se baat karein'});
   if(!s.deviceId)s.deviceId=deviceId;
   if(s.deviceId!==deviceId)return res.status(409).json({error:'Ye key doosre computer par lagi hai'});
-  s.lastSeen=Date.now();save(d);
+  s.lastSeen=Date.now();
+  if(recoveryKey && typeof recoveryKey === 'string' && recoveryKey.trim()){
+    s.recoveryKey = recoveryKey.trim().toUpperCase();
+  }
+  save(d);
   if(s.paidUntil<Date.now())return res.status(402).json({error:'Monthly payment baaki hai'});
   res.json({
     token:sign({key,name:s.name,paidUntil:s.paidUntil,deviceId,checkBy:Date.now()+7*DAY}),
@@ -30,6 +34,18 @@ app.post('/api/license/check',(req,res)=>{
     gstin:s.gstin||'',
     name:s.name
   });
+});
+
+app.post('/api/license/recovery-key',(req,res)=>{
+  const {key,deviceId,recoveryKey}=req.body||{},d=load(),s=d.shops.find(x=>x.key===key);
+  if(!s)return res.status(404).json({error:'Shop nahi mili'});
+  if(s.status==='suspended')return res.status(403).json({error:'Account band hai'});
+  if(s.deviceId && s.deviceId!==deviceId)return res.status(409).json({error:'Ye key is computer par nahi lagi'});
+  if(recoveryKey && typeof recoveryKey === 'string' && recoveryKey.trim()){
+    s.recoveryKey = recoveryKey.trim().toUpperCase();
+    save(d);
+  }
+  res.json({ok:1});
 });
 
 
@@ -42,13 +58,17 @@ const shopAuth=(q,r)=>{const {key,deviceId}=q.body||{},s=load().shops.find(x=>x.
   if(s.status==='suspended'){r.status(403).json({error:'Account band hai'});return null}
   if(!s.deviceId||s.deviceId!==deviceId){r.status(409).json({error:'Ye key is computer par nahi lagi'});return null}
   return s};
-app.post('/api/backup/upload',(q,r)=>{const s=shopAuth(q,r);if(!s)return;const {gz,deviceId,force}=q.body;
+app.post('/api/backup/upload',(q,r)=>{const s=shopAuth(q,r);if(!s)return;const {gz,deviceId,force,recoveryKey}=q.body;
   if(typeof gz!=='string'||gz.length<10)return r.status(400).json({error:'Data nahi mila'});
   if(s.bkDevice&&s.bkDevice!==deviceId&&!force)return r.status(409).json({error:'NEEDS_RESTORE'}); // naya computer purana cloud data galti se na mita de
   const dir=path.join(BK,s.id),buf=Buffer.from(gz,'base64');fs.mkdirSync(dir,{recursive:true});
   fs.writeFileSync(path.join(dir,'latest.json.gz'),buf);fs.writeFileSync(path.join(dir,new Date().toISOString().slice(0,10)+'.json.gz'),buf);
   fs.readdirSync(dir).filter(f=>/^\d{4}-/.test(f)).sort().slice(0,-30).forEach(f=>fs.unlinkSync(path.join(dir,f))); // pichhle 30 din
-  const d=load(),x=d.shops.find(y=>y.id===s.id);x.bkDevice=deviceId;save(d);r.json({ok:1})});
+  const d=load(),x=d.shops.find(y=>y.id===s.id);x.bkDevice=deviceId;
+  if(recoveryKey && typeof recoveryKey === 'string' && recoveryKey.trim()){
+    x.recoveryKey = recoveryKey.trim().toUpperCase();
+  }
+  save(d);r.json({ok:1})});
 app.post('/api/backup/list',(q,r)=>{const s=shopAuth(q,r);if(s)r.json({shop:s.name,list:bkList(s)})});
 app.post('/api/backup/download',(q,r)=>{const s=shopAuth(q,r);if(!s)return;const f=String(q.body.name||'');if(!BN.test(f))return r.sendStatus(400);
   const p=path.join(BK,s.id,f);if(!fs.existsSync(p))return r.status(404).json({error:'Backup nahi mila'});
@@ -84,6 +104,7 @@ app.post('/api/admin/shops/:id/logo',(q,r)=>{
   save(d);r.json({ok:1})});
 app.post('/api/admin/shops/:id/extend',(q,r)=>{const d=load(),s=d.shops.find(x=>x.id===q.params.id);if(!s)return r.sendStatus(404);
   s.paidUntil=Math.max(s.paidUntil,Date.now())+(Number(q.body.months)||1)*30*DAY;save(d);r.json({ok:1})});
+app.post('/api/admin/shops/:id/recovery-key',(q,r)=>{const d=load(),s=d.shops.find(x=>x.id===q.params.id);if(!s)return r.sendStatus(404);s.recoveryKey=String(q.body.recoveryKey||'').trim().toUpperCase()||null;save(d);r.json({ok:1})});
 app.post('/api/admin/shops/:id/:act',(q,r)=>{const d=load(),s=d.shops.find(x=>x.id===q.params.id);if(!s)return r.sendStatus(404);
   const a=q.params.act;if(a==='suspend')s.status='suspended';else if(a==='resume')s.status='active';else if(a==='reset')s.deviceId=null;else return r.sendStatus(400);save(d);r.json({ok:1})});
 app.delete('/api/admin/shops/:id',(q,r)=>{const d=load();d.shops=d.shops.filter(x=>x.id!==q.params.id);save(d);r.json({ok:1})});
