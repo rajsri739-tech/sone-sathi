@@ -29,6 +29,9 @@ function save(d) {
         if (d.adminSettings !== undefined) {
           await confCol.updateOne({ _id: 'adminSettings' }, { $set: { data: d.adminSettings } }, { upsert: true });
         }
+        if (d.appUpdate !== undefined) {
+          await confCol.updateOne({ _id: 'appUpdate' }, { $set: { data: d.appUpdate } }, { upsert: true });
+        }
         if (Array.isArray(d.shops)) {
           const currentIds = d.shops.map(s => s.id);
           await shopsCol.deleteMany({ id: { $nin: currentIds } });
@@ -81,7 +84,15 @@ async function initMongo() {
       dataCache.adminSettings = savedSet.data;
     }
 
-    // 4. Shops sync
+    // 4. Remote App Update info sync
+    const savedUp = await confCol.findOne({ _id: 'appUpdate' });
+    if (savedUp && savedUp.data) {
+      dataCache.appUpdate = savedUp.data;
+    } else if (!dataCache.appUpdate) {
+      dataCache.appUpdate = { version: '1.0.0', downloadUrl: '', notes: 'Official Stable Release', mandatory: false, releaseDate: Date.now() };
+    }
+
+    // 5. Shops sync
     const count = await shopsCol.countDocuments();
     if (count > 0) {
       const remoteShops = await shopsCol.find({}).toArray();
@@ -110,7 +121,7 @@ const app=express();app.use(express.json({limit:'50mb'}));
 
 // ---- shop app calls this ----
 app.post('/api/license/check',(req,res)=>{
-  const {key,deviceId,recoveryKey}=req.body||{},d=load(),s=d.shops.find(x=>x.key===key);
+  const {key,deviceId,recoveryKey,metrics}=req.body||{},d=load(),s=d.shops.find(x=>x.key===key);
   if(!s)return res.status(404).json({error:'Key galat hai'});
   if(s.status==='suspended')return res.status(403).json({error:'Account band hai. Provider se baat karein'});
   if(!s.deviceId)s.deviceId=deviceId;
@@ -119,22 +130,49 @@ app.post('/api/license/check',(req,res)=>{
   if(recoveryKey && typeof recoveryKey === 'string' && recoveryKey.trim()){
     s.recoveryKey = recoveryKey.trim().toUpperCase();
   }
+  if(metrics && typeof metrics === 'object'){
+    s.telemetry = {
+      invoicesCount: Number(metrics.invoicesCount) || 0,
+      customersCount: Number(metrics.customersCount) || 0,
+      stockCount: Number(metrics.stockCount) || 0,
+      appVersion: String(metrics.appVersion || '1.0.0').slice(0, 20),
+      os: String(metrics.os || 'Windows').slice(0, 20),
+      updatedAt: Date.now()
+    };
+  }
   save(d);
   if(s.paidUntil<Date.now())return res.status(402).json({error:'Monthly payment baaki hai'});
+
+  const shopPlan = s.plan || 'standard';
+  const shopModules = s.modules || {
+    girvi: shopPlan !== 'basic',
+    barcode: true,
+    karigar: shopPlan === 'gold',
+    gst: true
+  };
+
   res.json({
-    token:sign({key,name:s.name,paidUntil:s.paidUntil,deviceId,checkBy:Date.now()+7*DAY}),
+    token:sign({key,name:s.name,paidUntil:s.paidUntil,deviceId,checkBy:Date.now()+7*DAY,plan:shopPlan,modules:shopModules}),
     logo:s.logo||null,
     address:s.address||'',
     phone:s.phone||'',
     gstin:s.gstin||'',
     name:s.name,
-    announcement: d.announcement || null
+    announcement: d.announcement || null,
+    appUpdate: d.appUpdate || null,
+    plan: shopPlan,
+    modules: shopModules
   });
 });
 
 app.get('/api/announcement',(req,res)=>{
   const d=load();
   res.json(d.announcement||{active:false,text:'',type:'info'});
+});
+
+app.get('/api/app-update',(req,res)=>{
+  const d=load();
+  res.json(d.appUpdate||{version:'1.0.0',downloadUrl:'',notes:'Official stable release',mandatory:false});
 });
 
 app.post('/api/license/recovery-key',(req,res)=>{
@@ -168,6 +206,17 @@ app.post('/api/backup/upload',(q,r)=>{const s=shopAuth(q,r);if(!s)return;const {
   const d=load(),x=d.shops.find(y=>y.id===s.id);x.bkDevice=deviceId;
   if(recoveryKey && typeof recoveryKey === 'string' && recoveryKey.trim()){
     x.recoveryKey = recoveryKey.trim().toUpperCase();
+  }
+  if(q.body.metrics && typeof q.body.metrics === 'object'){
+    const m = q.body.metrics;
+    x.telemetry = {
+      invoicesCount: Number(m.invoicesCount) || 0,
+      customersCount: Number(m.customersCount) || 0,
+      stockCount: Number(m.stockCount) || 0,
+      appVersion: String(m.appVersion || '1.0.0').slice(0, 20),
+      os: String(m.os || 'Windows').slice(0, 20),
+      updatedAt: Date.now()
+    };
   }
   save(d);
   if (mongoDb) {
@@ -210,6 +259,7 @@ app.get('/api/admin/shops',(q,r)=>r.json(load().shops.map(s=>({...s,bk:bkList(s)
 app.get('/api/admin/shops/:id/backup/:name',(q,r)=>{const s=load().shops.find(x=>x.id===q.params.id);if(!s||!BN.test(q.params.name))return r.sendStatus(404);const p=path.join(BK,s.id,q.params.name);if(!fs.existsSync(p))return r.sendStatus(404);
   r.set('Content-Type','application/json').set('Content-Disposition','attachment; filename="'+s.name.replace(/[^\w]/g,'_')+'-'+q.params.name.replace('.gz','')+'"').send(zlib.gunzipSync(fs.readFileSync(p)))});
 app.post('/api/admin/shops',(q,r)=>{const d=load(),m=Number(q.body.months)||0;
+  const plan = q.body.plan || 'standard';
   d.shops.push({
     id:Date.now().toString(36),
     name:q.body.name||'Shop',
@@ -221,8 +271,29 @@ app.post('/api/admin/shops',(q,r)=>{const d=load(),m=Number(q.body.months)||0;
     status:'active',
     deviceId:null,
     lastSeen:null,
-    paidUntil:Date.now()+m*30*DAY
+    paidUntil:Date.now()+m*30*DAY,
+    plan: plan,
+    modules: q.body.modules || {
+      girvi: plan !== 'basic',
+      barcode: true,
+      karigar: plan === 'gold',
+      gst: true
+    },
+    telemetry: null
   });save(d);r.json({ok:1})});
+app.post('/api/admin/shops/:id/plan',(q,r)=>{
+  const d=load(),s=d.shops.find(x=>x.id===q.params.id);
+  if(!s)return r.sendStatus(404);
+  s.plan=q.body.plan||s.plan||'standard';
+  if(q.body.modules && typeof q.body.modules === 'object'){
+    s.modules = {
+      girvi: !!q.body.modules.girvi,
+      barcode: !!q.body.modules.barcode,
+      karigar: !!q.body.modules.karigar,
+      gst: !!q.body.modules.gst
+    };
+  }
+  save(d);r.json({ok:1,plan:s.plan,modules:s.modules})});
 app.post('/api/admin/shops/:id/logo',(q,r)=>{
   const d=load(),s=d.shops.find(x=>x.id===q.params.id);
   if(!s)return r.sendStatus(404);
@@ -243,6 +314,10 @@ app.post('/api/admin/announcement',(q,r)=>{const d=load();d.announcement={active
 app.get('/api/admin/settings',(q,r)=>{const d=load();r.json(d.adminSettings||{upiId:'sone-sathi@upi',upiName:'Sone Sathi Software',monthlyFee:999,quarterlyFee:2499,yearlyFee:7999})});
 app.post('/api/admin/settings',(q,r)=>{const d=load();d.adminSettings={upiId:String(q.body.upiId||'').trim(),upiName:String(q.body.upiName||'').trim(),monthlyFee:Number(q.body.monthlyFee)||999,quarterlyFee:Number(q.body.quarterlyFee)||2499,yearlyFee:Number(q.body.yearlyFee)||7999};save(d);r.json({ok:1,settings:d.adminSettings})});
 
+// Remote App Release & Update management
+app.get('/api/admin/app-update',(q,r)=>{const d=load();r.json(d.appUpdate||{version:'1.0.0',downloadUrl:'',notes:'Official Stable Release',mandatory:false})});
+app.post('/api/admin/app-update',(q,r)=>{const d=load();d.appUpdate={version:String(q.body.version||'1.0.0').trim(),downloadUrl:String(q.body.downloadUrl||'').trim(),notes:String(q.body.notes||'').trim(),mandatory:!!q.body.mandatory,releaseDate:Date.now()};save(d);r.json({ok:1,appUpdate:d.appUpdate})});
+
 // Database Health & Storage status
 app.get('/api/admin/db-status',(q,r)=>{
   r.json({
@@ -250,6 +325,25 @@ app.get('/api/admin/db-status',(q,r)=>{
     uriConfigured: !!MONGODB_URI,
     storageType: mongoDb ? 'MongoDB Atlas (Permanent Cloud)' : 'Local JSON Disk'
   });
+});
+
+// Hostinger & Offline Data Migration Exports
+app.get('/api/admin/keys',(q,r)=>r.json(keys));
+app.get('/api/admin/export-data-json',(q,r)=>{
+  const d=load();
+  const payload={
+    shops:(d.shops||[]).map(s=>{const {bk,...rest}=s;return rest;}),
+    announcement:d.announcement||{active:false,text:'',type:'info'},
+    adminSettings:d.adminSettings||{upiId:'sone-sathi@upi',upiName:'Sone Sathi Software',monthlyFee:999,quarterlyFee:2499,yearlyFee:7999}
+  };
+  r.set('Content-Type','application/json')
+   .set('Content-Disposition','attachment; filename="data.json"')
+   .send(JSON.stringify(payload,null,2));
+});
+app.get('/api/admin/export-keys-json',(q,r)=>{
+  r.set('Content-Type','application/json')
+   .set('Content-Disposition','attachment; filename="keys.json"')
+   .send(JSON.stringify(keys,null,2));
 });
 
 app.listen(PORT,()=>console.log('Server chal raha: http://localhost:'+PORT+'/admin  (password: '+(process.env.ADMIN_PASSWORD?'set':'admin123 - badal do!')+')'));
