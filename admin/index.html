@@ -713,6 +713,7 @@ tbody tr:hover {
       <div class="filter-pills">
         <button class="pill active" onclick="setFilter('all', this)">सभी (All)</button>
         <button class="pill" onclick="setFilter('active', this)">🟢 Active</button>
+        <button class="pill" onclick="setFilter('trial', this)">🟡 Trial Leads (<span id="cnt_trial">0</span>)</button>
         <button class="pill" onclick="setFilter('due', this)">⏰ Payment Due</button>
         <button class="pill" onclick="setFilter('stale', this)">⚠️ Stale Backup</button>
         <button class="pill" onclick="setFilter('suspended', this)">🚫 Suspended</button>
@@ -770,7 +771,27 @@ tbody tr:hover {
           <label>दुकान का पूरा पता / बाज़ार / शहर (Address)</label>
           <input id="addr" placeholder="e.g. Main Sarafa Bazar, Chowk, Lucknow">
         </div>
-        <div class="form-group">
+        <div class="form-group full" style="background:#fef3c7;padding:12px;border-radius:8px;border:1px solid #fde68a">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#92400e;margin-bottom:0">
+            <input type="checkbox" id="add_is_trial" onchange="toggleAddTrialMode(this.checked)" style="width:18px;height:18px;accent-color:#d97706">
+            <span style="font-size:13.5px;font-weight:700">⏳ 1-Click Free Trial / Demo Account बनाएं</span>
+          </label>
+          <div id="trial_options_box" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #fcd34d">
+            <label style="color:#78350f;font-size:11px">ट्रायल की अवधि (Trial Duration):</label>
+            <div style="display:flex;gap:12px;margin-top:4px">
+              <label style="display:flex;align-items:center;gap:5px;font-weight:600;font-size:12.5px;color:#92400e;cursor:pointer">
+                <input type="radio" name="trial_dur" value="7" checked style="accent-color:#d97706"> 7 दिन फ़्री डेमो (Recommended)
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;font-weight:600;font-size:12.5px;color:#92400e;cursor:pointer">
+                <input type="radio" name="trial_dur" value="14" style="accent-color:#d97706"> 14 दिन फ़्री डेमो
+              </label>
+            </div>
+            <div style="font-size:11px;color:#b45309;margin-top:5px">
+              💡 बिना पेमेंट के 7 दिन का डेमो चालू होगा। डेमो समाप्त होने पर ऐप स्वतः रिन्यूअल नोटिस देगा और 1-क्लिक में पेड में कन्वर्ट हो जाएगा।
+            </div>
+          </div>
+        </div>
+        <div class="form-group" id="mo_group">
           <label>प्रारंभिक वैधता (Initial Validity)</label>
           <select id="mo">
             <option value="1">1 महीना (1 Month License)</option>
@@ -1220,6 +1241,104 @@ tbody tr:hover {
   </div>
 </div>
 
+<!-- 10. PC MIGRATION & DISASTER RECOVERY ASSISTANT MODAL -->
+<div class="modal-overlay" id="migrate_modal">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-header">
+      <b style="font-size:16px;color:#0f172a">🔄 नया कंप्यूटर माइग्रेशन व रिकवरी (PC Migration Assistant)</b>
+      <button class="btn btn-outline btn-sm" onclick="closeMigrateModal()" style="border:none;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12.5px;color:#475569;margin-bottom:14px;line-height:1.5">
+        जब सुनार अपना कंप्यूटर बदलता है, फ़ॉर्मैट कराता है या नया लैपटॉप लेता है, तो यह विज़ार्ड बिना किसी डेटा लॉस के 1-क्लिक में नए कंप्यूटर पर सॉफ़्टवेयर को सक्रिय करता है।
+      </div>
+      
+      <div style="background:#f8fafc;padding:14px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">दुकान (Shop):</span>
+          <b style="font-size:14px;color:#0f172a" id="mig_shop_name">-</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">लाइसेंस कुंजी (License Key):</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="code-badge" id="mig_license_key" style="font-weight:800">-</span>
+            <button class="copy-btn" onclick="copyText($('mig_license_key').innerText, 'License Key Copied!')">📋</button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">🔑 रिकवरी पासकी:</span>
+          <span class="code-badge recovery-badge" id="mig_recovery_key">-</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">वर्तमान कंप्यूटर स्थिति:</span>
+          <span style="font-size:12px;font-weight:700" id="mig_device_status">Connected</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">☁️ क्लाउड बैकअप स्थिति:</span>
+          <span style="font-size:12px;font-weight:700" id="mig_backup_status">Checking...</span>
+        </div>
+      </div>
+
+      <div style="background:#eff6ff;padding:12px;border-radius:8px;border:1px solid #bfdbfe;font-size:12px;color:#1e40af;margin-bottom:8px;line-height:1.5">
+        <b>💡 माइग्रेशन कैसे काम करता है:</b><br>
+        1. नीचे <b>"🔓 डिवाइस लॉक खोलें (Authorize)"</b> पर क्लिक करें।<br>
+        2. दुकानदार को WhatsApp गाइड भेजें — वे नए PC में यही License Key दर्ज करेंगे।<br>
+        3. ऐप खुलते ही पूछेगा <i>'Purane Computer ka Backup Restore Karein?'</i> — 10 सेकंड में सारा डेटा रीस्टोर हो जाएगा!
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-primary" onclick="sendMigrationGuideWAFromModal()" style="background:#25D366;border-color:#25D366">📲 WhatsApp माइग्रेशन गाइड भेजें</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="closeMigrateModal()">बंद करें</button>
+        <button class="btn btn-primary" id="btn_auth_mig" onclick="authorizeMigrationFromModal()">🔓 डिवाइस लॉक खोलें (Authorize)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 11. CONVERT TRIAL TO PAID MODAL -->
+<div class="modal-overlay" id="convert_trial_modal">
+  <div class="modal-card" style="max-width:480px">
+    <div class="modal-header">
+      <b style="font-size:16px;color:#0f172a">👑 ट्रायल को पेड में बदलें (Convert Trial to Paid)</b>
+      <button class="btn btn-outline btn-sm" onclick="closeConvertTrialModal()" style="border:none;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12.5px;color:#475569;margin-bottom:14px">
+        दुकानदार का फ़्री डेमो समाप्त हो चुका है या वे फ़ुल वर्ज़न खरीदना चाहते हैं।
+      </div>
+      <div style="background:#fffbeb;padding:12px 14px;border-radius:8px;border:1px solid #fde68a;margin-bottom:16px">
+        <div style="font-size:14px;font-weight:800;color:#92400e" id="conv_shop_name">-</div>
+        <div style="font-size:12px;color:#b45309;margin-top:2px">📞 <span id="conv_shop_phone">-</span></div>
+        <div style="font-size:11.5px;color:#78350f;margin-top:4px" id="conv_trial_status">वर्तमान स्थिति: 🟡 डेमो ट्रायल</div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>सब्स्क्रिप्शन प्लान (Plan Tier)</label>
+          <select id="conv_plan">
+            <option value="basic">🔹 Basic (₹499/mo)</option>
+            <option value="standard" selected>⭐ Standard (₹999/mo)</option>
+            <option value="gold">👑 Gold (₹1499/mo)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>वैधता जोड़ें (Duration)</label>
+          <select id="conv_months">
+            <option value="1">1 महीना (+1 Month)</option>
+            <option value="3">3 महीने (+3 Months)</option>
+            <option value="6">6 महीने (+6 Months)</option>
+            <option value="12" selected>1 साल / 12 महीने (+1 Year)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeConvertTrialModal()">रद्द करें</button>
+      <button class="btn btn-primary" onclick="confirmConvertTrial()" style="background:#d97706;border-color:#d97706">✨ पेड लाइसेंस में कन्वर्ट करें</button>
+    </div>
+  </div>
+</div>
+
 <!-- Hidden file input for changing existing shop's logo -->
 <input type="file" id="change_logo_input" accept="image/*" style="display:none" onchange="commitChangeLogo(event)">
 
@@ -1661,10 +1780,11 @@ function renderDbStatus(db){
 
 function renderDashboard(){
   const now = Date.now();
-  let act = 0, due = 0, bks = 0, staleBackups = 0, totalInvoices = 0;
+  let act = 0, due = 0, bks = 0, staleBackups = 0, totalInvoices = 0, trialCount = 0;
 
   allShops.forEach(s => {
     const exp = s.paidUntil < now, sus = s.status === 'suspended';
+    if(s.isTrial) trialCount++;
     if(!exp && !sus) act++;
     if(exp) due++;
     if(s.bk) bks++;
@@ -1688,7 +1808,8 @@ function renderDashboard(){
   $('kpi_mrr').textContent = '₹' + mrrAmount.toLocaleString('en-IN');
   $('kpi_backups').textContent = bks;
   if($('kpi_invoices')) $('kpi_invoices').textContent = totalInvoices.toLocaleString('en-IN');
-  $('st_badge').textContent = `कुल ${allShops.length} दुकानें · ${act} सक्रिय · ${due} बकाया`;
+  if($('cnt_trial')) $('cnt_trial').textContent = trialCount;
+  $('st_badge').textContent = `कुल ${allShops.length} दुकानें · ${act} सक्रिय · ${due} बकाया · ${trialCount} ट्रायल`;
 
   const staleBadge = $('stale_alert_count_badge');
   if(staleBadge){
@@ -1727,6 +1848,7 @@ function renderFilteredTable(){
 
     // Status filter
     if(currentFilter === 'active' && (exp || sus)) return false;
+    if(currentFilter === 'trial' && !s.isTrial) return false;
     if(currentFilter === 'due' && !exp) return false;
     if(currentFilter === 'stale' && !isStale) return false;
     if(currentFilter === 'suspended' && !sus) return false;
@@ -1761,18 +1883,30 @@ function renderFilteredTable(){
   $('tb').innerHTML = filtered.map(s => {
     const exp = s.paidUntil < now;
     const sus = s.status === 'suspended';
+    const isTrial = !!s.isTrial;
 
     // Days remaining
     const diffDays = Math.ceil((s.paidUntil - now) / 864e5);
-    const validityText = exp 
-      ? `<span style="color:#ef4444;font-weight:700">${Math.abs(diffDays)} din pehle samapt</span>` 
-      : `<span style="color:#047857;font-weight:600">${diffDays} din baaki</span>`;
+    const validityText = isTrial 
+      ? (exp 
+          ? `<span style="color:#ef4444;font-weight:700">Trial Samapt (${Math.abs(diffDays)}d ago)</span>` 
+          : `<span style="color:#d97706;font-weight:700">🟡 Demo Trial (${diffDays} din baaki)</span>`)
+      : (exp 
+          ? `<span style="color:#ef4444;font-weight:700">${Math.abs(diffDays)} din pehle samapt</span>` 
+          : `<span style="color:#047857;font-weight:600">${diffDays} din baaki</span>`);
 
-    const statusBadge = sus 
-      ? `<span class="badge badge-suspended"><span class="badge-dot"></span>Suspended</span>` 
-      : exp 
-        ? `<span class="badge badge-due"><span class="badge-dot"></span>Payment Due</span>` 
-        : `<span class="badge badge-active"><span class="badge-dot"></span>Active</span>`;
+    let statusBadge = '';
+    if(sus){
+      statusBadge = `<span class="badge badge-suspended"><span class="badge-dot"></span>Suspended</span>`;
+    } else if(isTrial){
+      statusBadge = exp 
+        ? `<span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5"><span class="badge-dot" style="background:#ef4444"></span>Trial Expired</span>`
+        : `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a"><span class="badge-dot" style="background:#f59e0b"></span>Trial (${diffDays}d)</span>`;
+    } else if(exp){
+      statusBadge = `<span class="badge badge-due"><span class="badge-dot"></span>Payment Due</span>`;
+    } else {
+      statusBadge = `<span class="badge badge-active"><span class="badge-dot"></span>Active</span>`;
+    }
 
     const logoHtml = s.logo 
       ? `<div style="display:flex;align-items:center;gap:6px">
@@ -1903,11 +2037,15 @@ function renderFilteredTable(){
 
         <td style="text-align:right;white-space:nowrap">
           <div style="display:flex;gap:4px;justify-content:flex-end;align-items:center;margin-bottom:4px">
+            ${isTrial ? `
+              <button class="btn btn-outline btn-sm" onclick="openConvertTrialModal('${s.id}')" title="1-Click Convert to Paid Plan" style="border-color:#d97706;color:#92400e;background:#fef3c7;font-weight:800">👑 Paid Banayein</button>
+            ` : ''}
+            <button class="btn btn-outline btn-sm" onclick="openMigrateModal('${s.id}')" title="Naye PC me data transfer & device unlock" style="border-color:#0284c7;color:#0369a1;background:#f0f9ff;font-weight:700">🔄 PC Migrate</button>
             <button class="btn btn-outline btn-sm" onclick="openReceiptModal('${s.id}')" title="1-Click Subscription Invoice / Receipt" style="border-color:#3b82f6;color:#1d4ed8;background:#eff6ff;font-weight:700">🧾 रसीद</button>
             ${showRenewalBtn ? `
-              <button class="btn btn-outline btn-sm" onclick="sendRenewalReminderWA('${s.id}')" title="1-Click WhatsApp Subscription Renewal Notice" style="border-color:#f59e0b;color:#b45309;background:#fffbeb;font-weight:700">📲 तगादा</button>
+              <button class="btn btn-outline btn-sm" onclick="${isTrial ? `sendTrialExpiringWA('${s.id}')` : `sendRenewalReminderWA('${s.id}')`}" title="${isTrial ? 'Trial Ending Notice' : 'Renewal Reminder'}" style="border-color:#f59e0b;color:#b45309;background:#fffbeb;font-weight:700">📲 तगादा</button>
             ` : ''}
-            <button class="btn btn-outline btn-sm" onclick="sendShopOnboardingWA('${s.id}')" title="Grahak ko WhatsApp Onboarding Message bhejein" style="border-color:#10b981;color:#047857;background:#ecfdf5;font-weight:700">📲 Info</button>
+            <button class="btn btn-outline btn-sm" onclick="${isTrial ? `sendTrialWelcomeWA('${s.id}')` : `sendShopOnboardingWA('${s.id}')`}" title="Grahak ko WhatsApp Onboarding Message bhejein" style="border-color:#10b981;color:#047857;background:#ecfdf5;font-weight:700">📲 Info</button>
             <button class="btn btn-outline btn-sm" onclick="x('${s.id}','extend',1)" title="Extend 1 Month">+1 Mo</button>
             <button class="btn btn-outline btn-sm" onclick="x('${s.id}','extend',3)" title="Extend 3 Months">+3</button>
             <button class="btn btn-outline btn-sm" onclick="x('${s.id}','extend',12)" title="Extend 1 Year">+1 Yr</button>
@@ -1944,6 +2082,13 @@ async function addShop(){
   const nm = $('nm').value.trim();
   if(!nm){ alert('Dukaan ka naam darj karein'); return; }
 
+  const isTrial = $('add_is_trial') ? $('add_is_trial').checked : false;
+  let trialDays = 7;
+  if(isTrial){
+    const durEl = document.querySelector('input[name="trial_dur"]:checked');
+    trialDays = durEl ? Number(durEl.value) : 7;
+  }
+
   const res = await call('/api/admin/shops', 'POST', {
     name: nm,
     phone: $('ph').value.trim(),
@@ -1951,14 +2096,18 @@ async function addShop(){
     gstin: $('gst').value.trim(),
     months: $('mo').value,
     plan: $('add_plan') ? $('add_plan').value : 'standard',
-    logo: currentLogoData
+    logo: currentLogoData,
+    isTrial: isTrial,
+    trialDays: trialDays
   });
 
   $('nm').value = $('ph').value = $('addr').value = $('gst').value = '';
+  if($('add_is_trial')) $('add_is_trial').checked = false;
+  toggleAddTrialMode(false);
   clearAdminLogo();
   closeAddModal();
   load();
-  showToast('🎉 Nayi Dukaan safaltapoorvak register ho gayi!');
+  showToast(isTrial ? '⏳ Free Demo Trial safaltapoorvak shuru ho gaya!' : '🎉 Nayi Dukaan safaltapoorvak register ho gayi!');
 }
 
 function triggerChangeLogo(shopId){
@@ -2167,6 +2316,179 @@ async function exportKeysJSON(){
     console.error(e);
     alert('Keys download karne me dikkat aayi');
   }
+}
+
+// ========================
+// FEATURE 1: FREE TRIAL SYSTEM
+// ========================
+let currentTargetConvertTrialShopId = null;
+
+function toggleAddTrialMode(isTrial){
+  const box = $('trial_options_box');
+  if(box) box.style.display = isTrial ? 'block' : 'none';
+  const moGrp = $('mo_group');
+  if(moGrp) moGrp.style.opacity = isTrial ? '0.4' : '1';
+  const moSel = $('mo');
+  if(moSel) moSel.disabled = isTrial;
+}
+
+function openConvertTrialModal(shopId){
+  currentTargetConvertTrialShopId = shopId;
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+  const now = Date.now();
+  const diffDays = Math.ceil((s.paidUntil - now) / 864e5);
+  $('conv_shop_name').textContent = s.name;
+  $('conv_shop_phone').textContent = s.phone || 'Phone darj nahi hai';
+  $('conv_trial_status').innerHTML = diffDays > 0 
+    ? `वर्तमान स्थिति: <b style="color:#d97706">🟡 Demo Trial (${diffDays} दिन बाकी)</b>`
+    : `वर्तमान स्थिति: <b style="color:#dc2626">🔴 Demo Trial समाप्त (${Math.abs(diffDays)} दिन पहले)</b>`;
+  if($('conv_plan')) $('conv_plan').value = s.plan || 'standard';
+  $('convert_trial_modal').classList.add('open');
+}
+
+function closeConvertTrialModal(){
+  $('convert_trial_modal').classList.remove('open');
+}
+
+async function confirmConvertTrial(){
+  if(!currentTargetConvertTrialShopId) return;
+  const plan = $('conv_plan') ? $('conv_plan').value : 'standard';
+  const months = Number($('conv_months')?.value) || 1;
+  const res = await call(`/api/admin/shops/${currentTargetConvertTrialShopId}/convert-trial`, 'POST', { plan, months });
+  showToast('🎉 Dukaan safalta se Paid License me convert ho gayi!');
+  closeConvertTrialModal();
+  load();
+}
+
+// 📲 1-Click WhatsApp Trial Welcome Message
+function sendTrialWelcomeWA(shopId){
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+  const phone = s.phone || prompt('Grahak ka WhatsApp Number:');
+  if(!phone) return;
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const p = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+  const trialDays = s.trialDays || 7;
+  const expiryDateStr = new Date(s.paidUntil).toLocaleDateString('en-IN');
+
+  let msg = `✨ *नमस्ते ${(s.name || 'ज्वेलर्स').toUpperCase()} जी!* ✨\n`;
+  msg += `*Sone Sathi Jewellery ERP Software* के *${trialDays}-दिवसीय फ़्री डेमो* में आपका हार्दिक स्वागत है! 🎉\n\n`;
+  msg += `बिना किसी भुगतान के आप ${trialDays} दिनों तक सॉफ़्टवेयर के सभी फ़ीचर्स (GST बिलिंग, बारकोड, गिरवी, स्टॉक) आज़मा सकते हैं:\n\n`;
+  msg += `🔑 *आपकी फ़्री ट्रायल License Key:* \`${s.key}\`\n`;
+  msg += `⏳ *ट्रायल वैधता:* ${expiryDateStr} तक\n\n`;
+  msg += `📥 *सॉफ़्टवेयर डाउनलोड लिंक:* https://sone-sathi-server.onrender.com\n\n`;
+  msg += `💡 *शुरुआत कैसे करें:*\n`;
+  msg += `1. सॉफ़्टवेयर खोलकर ऊपर दी गई License Key दर्ज करें।\n`;
+  msg += `2. अपना 4-अंकीय सुरक्षित मालिक Passkey बनाएं।\n`;
+  msg += `3. अपनी दुकान के नाम व जीएसटी सहित बिलिंग तुरंत शुरू करें।\n\n`;
+  msg += `📌 *नोट:* ट्रायल समाप्त होने के बाद भी आपका बनाया हुआ डेटा सुरक्षित रहेगा।\n`;
+  msg += `📞 किसी भी सहायता के लिए हमें संपर्क करें। धन्यवाद!\n`;
+  msg += `_— Sone Sathi Support Team_`;
+
+  window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// 📲 1-Click WhatsApp Trial Ending Reminder
+function sendTrialExpiringWA(shopId){
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+  const phone = s.phone || prompt('Grahak ka WhatsApp Number:');
+  if(!phone) return;
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const p = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+
+  const now = Date.now();
+  const exp = s.paidUntil < now;
+  const diffDays = Math.ceil((s.paidUntil - now) / 864e5);
+  const expiryDateStr = new Date(s.paidUntil).toLocaleDateString('en-IN');
+  const upiId = adminSettings.upiId || 'sone-sathi@upi';
+  const fee = adminSettings.monthlyFee || 999;
+
+  let msg = `⏳ *फ़्री डेमो ट्रायल समाप्ति सूचना: ${(s.name || 'ज्वेलर्स').toUpperCase()}*\n\n`;
+  if(exp){
+    msg += `नमस्ते जी! आपके *Sone Sathi Jewellery Software* का फ़्री डेमो ट्रायल समाप्त हो चुका है।\n\n`;
+  } else {
+    msg += `नमस्ते जी! आपके *Sone Sathi Jewellery Software* का फ़्री डेमो ट्रायल *${expiryDateStr}* को समाप्त हो रहा है (${diffDays} दिन शेष)।\n\n`;
+  }
+  msg += `दुकान का बनाया हुआ पूरा बिलिंग डेटा व स्टॉक सुरक्षित रखने और बिना रुकावट सॉफ़्टवेयर जारी रखने के लिए कृपया आज ही अपना फ़ुल लाइसेंस एक्टिवेट कराएं।\n\n`;
+  msg += `💰 *सब्सक्रिप्शन शुल्क:* ₹${fee}/माह (या ₹${adminSettings.yearlyFee || 7999}/वर्ष)\n`;
+  msg += `💳 *भुगतान हेतु UPI ID:* \`${upiId}\`\n\n`;
+  msg += `भुगतान के बाद 1 सेकंड में आपका ट्रायल रेगुलर पेड लाइसेंस में बदल दिया जाएगा। धन्यवाद!\n`;
+  msg += `_— Sone Sathi Billing Team_`;
+
+  window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ========================
+// FEATURE 4: NEW PC MIGRATION ASSISTANT
+// ========================
+let currentTargetMigrateShopId = null;
+
+function openMigrateModal(shopId){
+  currentTargetMigrateShopId = shopId;
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+  $('mig_shop_name').textContent = s.name;
+  $('mig_license_key').textContent = s.key;
+  $('mig_recovery_key').textContent = s.recoveryKey || 'Passkey banne par aayegi';
+  $('mig_device_status').innerHTML = s.deviceId 
+    ? `<span style="color:#047857">💻 पुराना PC कनेक्टेड है (${s.deviceId.slice(0, 12)}...)</span>`
+    : `<span style="color:#0284c7;font-weight:700">⚪ अनलॉक है (नया कंप्यूटर लिंक होने को तैयार)</span>`;
+  
+  if(s.bk){
+    $('mig_backup_status').innerHTML = `<span style="color:#047857">🟢 1 बैकअप उपलब्ध (${Math.round(s.bk.size/1024)} KB · ${dt(s.bk.time)})</span>`;
+  } else {
+    $('mig_backup_status').innerHTML = `<span style="color:#ef4444">⚠️ कोई बैकअप नहीं मिला</span>`;
+  }
+
+  const btn = $('btn_auth_mig');
+  if(btn){
+    btn.textContent = s.deviceId ? '🔓 डिवाइस लॉक खोलें (Authorize)' : '✓ Unlocked (Ready)';
+    btn.disabled = !s.deviceId;
+  }
+  $('migrate_modal').classList.add('open');
+}
+
+function closeMigrateModal(){
+  $('migrate_modal').classList.remove('open');
+}
+
+async function authorizeMigrationFromModal(){
+  if(!currentTargetMigrateShopId) return;
+  const res = await call(`/api/admin/shops/${currentTargetMigrateShopId}/authorize-migration`, 'POST');
+  showToast('🔓 PC Migration Authorized! नया कंप्यूटर कनेक्ट होने के लिए तैयार है।');
+  closeMigrateModal();
+  load();
+}
+
+function sendMigrationGuideWAFromModal(){
+  if(!currentTargetMigrateShopId) return;
+  sendMigrationGuideWA(currentTargetMigrateShopId);
+}
+
+// 📲 1-Click WhatsApp Migration Guide
+function sendMigrationGuideWA(shopId){
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+  const phone = s.phone || prompt('Grahak ka WhatsApp Number:');
+  if(!phone) return;
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const p = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+
+  let msg = `🔄 *नया कंप्यूटर माइग्रेशन गाइड: ${(s.name || 'ज्वेलर्स').toUpperCase()}*\n\n`;
+  msg += `नमस्ते जी! आपके नए कंप्यूटर / लैपटॉप पर *Sone Sathi Jewellery Software* शुरू करने की 3 आसान प्रक्रिया:\n\n`;
+  msg += `1️⃣ *सॉफ़्टवेयर डाउनलोड करें:*\n`;
+  msg += `📥 लिंक: https://sone-sathi-server.onrender.com\n\n`;
+  msg += `2️⃣ *अपनी License Key दर्ज करें:*\n`;
+  msg += `🔑 *License Key:* \`${s.key}\`\n\n`;
+  msg += `3️⃣ *1-क्लिक डेटा रीस्टोर:*\n`;
+  msg += `सर्वर से आपके पुराने कंप्यूटर का लॉक हटा दिया गया है। जैसे ही आप License Key डालकर 'Chalu karo' दबाएंगे, स्क्रीन पर *'Purane Computer ka Backup Mila'* दिखेगा।\n\n`;
+  msg += `👉 *[📥 1-Click Restore]* दबाते ही 10 सेकंड में आपके पुराने सभी बिल, ग्राहक, स्टॉक व गिरवी खाते नए कंप्यूटर में हूबहू आ जाएंगे! 🚀\n\n`;
+  msg += `किसी भी सहायता के लिए हमें इसी नंबर पर कॉल करें। धन्यवाद!\n`;
+  msg += `_— Sone Sathi Migration Support_`;
+
+  window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 load();
