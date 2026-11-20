@@ -572,6 +572,9 @@ tbody tr:hover {
       <button class="btn btn-primary" onclick="openAddModal()">
         <span>+ Nayi Dukaan Register Karein</span>
       </button>
+      <button class="btn btn-secondary btn-sm" onclick="openUpdateModal()" title="Remote Software Version & Release Manager">
+        <span>🚀 App Update</span>
+      </button>
       <button class="btn btn-secondary btn-sm" onclick="openAnnouncementModal()" title="Sabhi dukaano ko In-App Announcement bhejein">
         <span>📢 Broadcast Notice</span>
       </button>
@@ -581,8 +584,8 @@ tbody tr:hover {
       <button class="btn btn-secondary btn-sm" onclick="openMongoGuideModal()" title="MongoDB Atlas Cloud Setup Guide">
         <span>☁️ DB Setup</span>
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="exportShopsCSV()" title="Master Shops Excel/CSV Download">
-        <span>📥 Export Master CSV</span>
+      <button class="btn btn-secondary btn-sm" onclick="openExportModal()" title="Download data.json, keys.json & Master CSV for Hostinger migration or backup">
+        <span>📥 Export & Backup</span>
       </button>
       <button class="btn btn-secondary btn-sm" onclick="load()" title="Data Refresh">
         <span>🔄 Refresh</span>
@@ -663,6 +666,15 @@ tbody tr:hover {
       <div class="kpi-value" id="kpi_backups" style="color:#1d4ed8">0</div>
       <div class="kpi-subtext" id="kpi_backups_sub">Synced shop databases</div>
     </div>
+
+    <div class="kpi-card" style="border-top:3px solid #8b5cf6">
+      <div class="kpi-header">
+        <span class="kpi-label">कुल बिल बने (Bills Created)</span>
+        <div class="kpi-icon" style="background:#f5f3ff;color:#7c3aed">🧾</div>
+      </div>
+      <div class="kpi-value" id="kpi_invoices" style="color:#6d28d9">0</div>
+      <div class="kpi-subtext" id="kpi_invoices_sub">Client Activity Telemetry</div>
+    </div>
   </div>
 
   <!-- 2. LIVE ANNOUNCEMENT PREVIEW BAR (IF ACTIVE) -->
@@ -715,12 +727,13 @@ tbody tr:hover {
           <tr>
             <th>दुकान व संपर्क विवरण</th>
             <th>लोगो</th>
+            <th>प्लान व मॉड्यूल</th>
             <th>लाइसेंस कुंजी (License Key)</th>
-            <th>🔑 पासकी रिकवरी</th>
+            <th>🔑 पासकी</th>
             <th>वैधता (Validity)</th>
             <th>स्थिति (Status)</th>
-            <th>अंतिम ऑनलाइन</th>
-            <th>क्लाउड बैकअप हेल्थ</th>
+            <th>उपयोग व एक्टिविटी (Telemetry)</th>
+            <th>क्लाउड बैकअप</th>
             <th style="text-align:right">त्वरित एक्शन (Actions)</th>
           </tr>
         </thead>
@@ -757,14 +770,22 @@ tbody tr:hover {
           <label>दुकान का पूरा पता / बाज़ार / शहर (Address)</label>
           <input id="addr" placeholder="e.g. Main Sarafa Bazar, Chowk, Lucknow">
         </div>
-        <div class="form-group full">
-          <label>प्रारंभिक वैधता (Initial Subscription Validity)</label>
+        <div class="form-group">
+          <label>प्रारंभिक वैधता (Initial Validity)</label>
           <select id="mo">
             <option value="1">1 महीना (1 Month License)</option>
             <option value="3">3 महीने (Quarterly)</option>
             <option value="6">6 महीने (Half-Yearly)</option>
-            <option value="12" selected>1 साल / 12 महीने (Annual License)</option>
+            <option value="12" selected>1 साल / 12 महीने (Annual)</option>
             <option value="24">2 साल (Bi-Annual)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>सब्स्क्रिप्शन प्लान (Software Plan Tier)</label>
+          <select id="add_plan">
+            <option value="basic">🔹 Basic (₹499/mo) — बिलिंग व स्टॉक</option>
+            <option value="standard" selected>⭐ Standard (₹999/mo) — बेसिक + गिरवी व बारकोड</option>
+            <option value="gold">👑 Gold (₹1499/mo) — ऑल-इनक्लूसिव + कारीगर</option>
           </select>
         </div>
         <div class="form-group full" style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0">
@@ -947,6 +968,258 @@ tbody tr:hover {
   </div>
 </div>
 
+<!-- 5. DATA EXPORT & HOSTINGER MIGRATION MODAL -->
+<div class="modal-overlay" id="export_modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title">📥 Data Export & Server Backup (Hostinger Migration)</div>
+      <button class="modal-close" onclick="closeExportModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:18px;background:#f0fdf4;padding:12px 16px;border-radius:8px;border:1px solid #bbf7d0;font-size:12.5px;color:#166534;line-height:1.5">
+        💡 <strong>Hostinger या लोकल सर्वर पर ले जाने के लिए:</strong> नीचे दिए गए बटनों से <code>data.json</code> और <code>keys.json</code> डाउनलोड करें और अपने नए होस्टिंग सर्वर के <code>server/</code> फ़ोल्डर में रख दें। आपकी सभी दुकानें बिना किसी रुकावट के तुरंत चालू हो जाएंगी!
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- 1. data.json -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;gap:14px">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#0f172a;display:flex;align-items:center;gap:6px">
+              <span>💾</span><span>data.json (दुकानें व सेटिंग्स)</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:3px">
+              सभी दुकानों की लिस्ट, मोबाइल नंबर, वैधता, ब्रॉडकास्ट नोटिस व एडमिन UPI सेटिंग्स।
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="exportDataJSON()" style="flex-shrink:0">
+            <span>📥 Download data.json</span>
+          </button>
+        </div>
+
+        <!-- 2. keys.json -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;gap:14px">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#0f172a;display:flex;align-items:center;gap:6px">
+              <span>🔑</span><span>keys.json (लाइसेंस सिग्नेचर की)</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:3px">
+              Ed25519 क्रिप्टोग्राफ़िक कीज़। नए सर्वर पर यही की होनी चाहिए ताकि दुकानदारों का ऐप लॉक न हो।
+            </div>
+          </div>
+          <button class="btn btn-secondary" onclick="exportKeysJSON()" style="flex-shrink:0">
+            <span>📥 Download keys.json</span>
+          </button>
+        </div>
+
+        <!-- 3. Master Excel CSV -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;gap:14px">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#0f172a;display:flex;align-items:center;gap:6px">
+              <span>📊</span><span>Master Shops Excel / CSV Sheet</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:3px">
+              सभी दुकानों का एक्सेल प्रारूप — ऑफलाइन रिकॉर्ड, फ़ोन कॉल्स व अकाउंटिंग के लिए।
+            </div>
+          </div>
+          <button class="btn btn-outline" onclick="exportShopsCSV()" style="flex-shrink:0">
+            <span>📥 Download Excel CSV</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeExportModal()">बंद करें</button>
+    </div>
+  </div>
+</div>
+
+<!-- 6. REMOTE APP RELEASE & UPDATE MODAL -->
+<div class="modal-overlay" id="update_modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <b style="font-size:16px;color:#0f172a">🚀 सॉफ्टवेयर वर्जन व ऑटो-अपडेट मैनेजर (App Releases)</b>
+      <button class="btn btn-outline btn-sm" onclick="closeUpdateModal()" style="border:none;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:14px;font-size:12.5px;color:#475569">
+        💡 यहाँ नया वर्जन नंबर और डाउनलोड लिंक सेव करते ही सभी 50+ दुकानदारों के सॉफ्टवेयर में <strong>"नया अपडेट उपलब्ध है"</strong> का बैनर लाइव हो जाएगा।
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>नया वर्जन नंबर (Latest Version) *</label>
+          <input id="up_version" placeholder="e.g. 1.1.0">
+        </div>
+        <div class="form-group">
+          <label>अनिवार्य अपडेट (Mandatory Update?)</label>
+          <select id="up_mandatory">
+            <option value="false">नहीं (वैकल्पिक / Optional)</option>
+            <option value="true">हाँ (अनिवार्य / Mandatory)</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>डाउनलोड लिंक (Google Drive / GitHub / Direct .exe link) *</label>
+          <input id="up_url" placeholder="https://drive.google.com/... ya direct .exe link">
+        </div>
+        <div class="form-group full">
+          <label>रिलीज़ नोट्स / क्या नया है? (Release Notes)</label>
+          <textarea id="up_notes" rows="3" placeholder="उदा. नया गिरवी ब्याज कैलकुलेटर, सुपरफास्ट बारकोड स्कैनिंग और नया A4 बिल लेआउट..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUpdateModal()">रद्द करें</button>
+      <button class="btn btn-primary" onclick="saveAppUpdate()">🚀 सेव करें व दुकानों को सूचित करें</button>
+    </div>
+  </div>
+</div>
+
+<!-- 7. MANAGE PLAN & MODULES ACCESS MODAL -->
+<div class="modal-overlay" id="plan_modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <b style="font-size:16px;color:#0f172a">⚙️ प्लान व मॉड्यूल एक्सेस कंट्रोल (Feature Access)</b>
+      <button class="btn btn-outline btn-sm" onclick="closePlanModal()" style="border:none;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;color:#64748b">दुकान का नाम:</div>
+        <b id="plan_shop_name" style="font-size:15px;color:#0f172a">-</b>
+      </div>
+
+      <div class="form-group" style="margin-bottom:16px">
+        <label>सब्स्क्रिप्शन प्लान चुनें (Plan Tier)</label>
+        <select id="plan_tier" onchange="onPlanTierChange()">
+          <option value="basic">🔹 Basic Plan (₹499/mo) — सिर्फ़ बिलिंग व स्टॉक</option>
+          <option value="standard">⭐ Standard Plan (₹999/mo) — बिलिंग + बारकोड + गिरवी</option>
+          <option value="gold">👑 Gold All-Inclusive (₹1499/mo) — सभी फीचर्स अनलॉक</option>
+        </select>
+      </div>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#334155">मॉड्यूल एक्सेस कस्टमाइज़ करें (Feature Toggles):</div>
+      <div style="display:flex;flex-direction:column;gap:10px;background:#f8fafc;padding:14px;border-radius:8px;border:1px solid #e2e8f0">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:13px">
+          <input type="checkbox" id="mod_girvi" style="width:17px;height:17px;accent-color:#b45309">
+          <span>🔒 गिरवी खाता व ब्याज कैलकुलेटर (Mortgage / Loan Ledger)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:13px">
+          <input type="checkbox" id="mod_barcode" style="width:17px;height:17px;accent-color:#b45309">
+          <span>🏷️ बारकोड स्कैनर व ज्वेलरी टैग प्रिंटिंग (Tag Studio)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:13px">
+          <input type="checkbox" id="mod_karigar" style="width:17px;height:17px;accent-color:#b45309">
+          <span>🛠️ कारीगर व थोक लेज़र (Karigar Issued / Received Ledger)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:13px">
+          <input type="checkbox" id="mod_gst" style="width:17px;height:17px;accent-color:#b45309">
+          <span>🧾 एडवांस्ड GST टैक्स इनवॉइस व रिपोर्ट्स (GSTR Ready)</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closePlanModal()">रद्द करें</button>
+      <button class="btn btn-primary" onclick="savePlanSettings()">💾 प्लान व फीचर्स सेव करें</button>
+    </div>
+  </div>
+</div>
+
+<!-- 8. SUBSCRIPTION TAX RECEIPT / INVOICE MODAL -->
+<div class="modal-overlay" id="receipt_modal">
+  <div class="modal-card" style="max-width:760px">
+    <div class="modal-header">
+      <b style="font-size:16px;color:#0f172a">🧾 सॉफ्टवेयर सदस्यता रसीद (Subscription Invoice / Receipt)</b>
+      <button class="btn btn-outline btn-sm" onclick="closeReceiptModal()" style="border:none;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body" style="background:#f1f5f9;padding:16px">
+      <!-- Printable Receipt Canvas -->
+      <div id="printable_receipt" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:26px;box-shadow:0 4px 15px rgba(0,0,0,0.06);color:#0f172a;font-family:'Plus Jakarta Sans',system-ui,sans-serif">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #b45309;padding-bottom:14px">
+          <div>
+            <div style="font-size:20px;font-weight:900;color:#92400e;letter-spacing:1px">💎 SONE SATHI SOFTWARE</div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px">Jewellery ERP & Cloud Billing Solutions</div>
+            <div style="font-size:11.5px;color:#475569;margin-top:4px">UPI ID: <b id="rec_upi_id">sone-sathi@upi</b> | Support: +91 8052933285</div>
+          </div>
+          <div style="text-align:right">
+            <span style="display:inline-block;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:3px 12px;border-radius:20px;font-weight:800;font-size:12px">✓ OFFICIAL RECEIPT (PAID)</span>
+            <div style="font-size:12px;color:#64748b;margin-top:6px">रसीद नं: <b id="rec_no" style="color:#0f172a">REC-2026-001</b></div>
+            <div style="font-size:12px;color:#64748b">तारीख: <b id="rec_date" style="color:#0f172a">-</b></div>
+          </div>
+        </div>
+
+        <!-- Billed To -->
+        <div style="margin-top:16px;background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">सेवा प्राप्तकर्ता (Billed To):</div>
+            <div style="font-size:15px;font-weight:800;color:#0f172a;margin-top:2px" id="rec_shop_name">Dukaan Ka Naam</div>
+            <div style="font-size:12px;color:#475569;margin-top:2px">📞 फ़ोन: <span id="rec_shop_phone">-</span></div>
+            <div style="font-size:12px;color:#475569">📍 पता: <span id="rec_shop_addr">-</span></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">लाइसेंस कुंजी (License Key):</div>
+            <div style="font-family:monospace;font-weight:800;color:#b45309;font-size:13px;margin-top:2px" id="rec_license_key">-</div>
+            <div style="font-size:12px;color:#475569;margin-top:4px">GSTIN: <span id="rec_shop_gst">-</span></div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <table style="width:100%;margin-top:18px;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1">
+              <th style="padding:10px;text-align:left;color:#334155">विवरण (Description)</th>
+              <th style="padding:10px;text-align:center;color:#334155">प्लान</th>
+              <th style="padding:10px;text-align:center;color:#334155">वैधता तक (Valid Until)</th>
+              <th style="padding:10px;text-align:right;color:#334155">राशि (Amount)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #e2e8f0">
+              <td style="padding:12px 10px">
+                <div style="font-weight:700;color:#0f172a">Sone Sathi Jewellery ERP Software Subscription</div>
+                <div style="font-size:11.5px;color:#64748b">Single PC Commercial Business License & Cloud Sync</div>
+              </td>
+              <td style="padding:12px 10px;text-align:center" id="rec_plan_name">Standard</td>
+              <td style="padding:12px 10px;text-align:center;font-weight:700;color:#047857" id="rec_valid_until">-</td>
+              <td style="padding:12px 10px;text-align:right;font-weight:800;font-size:14px" id="rec_amount">₹999.00</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:#fffbeb">
+              <td colspan="3" style="padding:12px 10px;font-weight:800;text-align:right;color:#92400e">कुल भुगतान प्राप्त (Total Amount Paid):</td>
+              <td style="padding:12px 10px;text-align:right;font-weight:900;font-size:16px;color:#92400e" id="rec_total_amount">₹999.00</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- Footer -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:24px;border-top:1px dashed #cbd5e1;padding-top:14px">
+          <div style="font-size:11.5px;color:#64748b;max-width:380px;line-height:1.5">
+            • यह एक डिजिटल जनरेटेड रसीद है। किसी भौतिक हस्ताक्षर की आवश्यकता नहीं है।<br>
+            • सदस्यता शुल्क गैर-वापसी योग्य (Non-Refundable) है।<br>
+            • सहायता व पूछताछ के लिए WhatsApp: +91 8052933285
+          </div>
+          <div style="text-align:center">
+            <div style="border:2px dashed #b45309;padding:6px 14px;border-radius:6px;color:#92400e;font-weight:800;font-size:11px;text-transform:uppercase;background:#fffdf0">
+              AUTHORIZED SEAL<br>
+              <span style="font-size:10px;font-weight:600;color:#78350f">SONE SATHI SOFTWARE</span>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:3px">Authorized Signatory</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:12px;color:#64748b">
+        प्रिंट करें या सीधे दुकानदार को WhatsApp पर भेजें।
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="printReceipt()">🖨️ Print / Save PDF</button>
+        <button class="btn btn-primary" onclick="sendReceiptWA()" style="background:#25D366;border-color:#25D366">📲 WhatsApp Receipt Bhejein</button>
+        <button class="btn btn-outline" onclick="closeReceiptModal()">बंद करें</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Hidden file input for changing existing shop's logo -->
 <input type="file" id="change_logo_input" accept="image/*" style="display:none" onchange="commitChangeLogo(event)">
 
@@ -962,6 +1235,9 @@ let currentLogoData = null;
 let currentTargetShopId = null;
 let adminSettings = { upiId: 'sone-sathi@upi', upiName: 'Sone Sathi Software', monthlyFee: 999, quarterlyFee: 2499, yearlyFee: 7999 };
 let currentAnnouncement = { active: false, text: '', type: 'info' };
+let currentAppUpdate = { version: '1.0.0', downloadUrl: '', notes: '', mandatory: false };
+let currentTargetPlanShopId = null;
+let currentTargetReceiptShop = null;
 
 const DEFAULT_ROYAL_LOGO = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 140' width='520' height='140'>
   <defs>
@@ -1044,6 +1320,160 @@ function closeSettingsModal(){ $('settings_modal').classList.remove('open'); }
 
 function openMongoGuideModal(){ $('mongo_guide_modal').classList.add('open'); }
 function closeMongoGuideModal(){ $('mongo_guide_modal').classList.remove('open'); }
+
+function openExportModal(){ $('export_modal').classList.add('open'); }
+function closeExportModal(){ $('export_modal').classList.remove('open'); }
+
+// 🚀 App Release Update handlers
+function openUpdateModal(){
+  $('update_modal').classList.add('open');
+  $('up_version').value = currentAppUpdate.version || '1.0.0';
+  $('up_mandatory').value = currentAppUpdate.mandatory ? 'true' : 'false';
+  $('up_url').value = currentAppUpdate.downloadUrl || '';
+  $('up_notes').value = currentAppUpdate.notes || '';
+}
+function closeUpdateModal(){ $('update_modal').classList.remove('open'); }
+
+async function saveAppUpdate(){
+  const version = $('up_version').value.trim() || '1.0.0';
+  const mandatory = $('up_mandatory').value === 'true';
+  const downloadUrl = $('up_url').value.trim();
+  const notes = $('up_notes').value.trim();
+  const res = await call('/api/admin/app-update', 'POST', { version, mandatory, downloadUrl, notes });
+  if(res && res.appUpdate){
+    currentAppUpdate = res.appUpdate;
+    closeUpdateModal();
+    showToast(`🚀 नया ऐप वर्जन ${version} सेव हो गया!`);
+  }
+}
+
+// ⚙️ Plan & Module Access handlers
+function openPlanModal(shopId){
+  currentTargetPlanShopId = shopId;
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+  $('plan_modal').classList.add('open');
+  $('plan_shop_name').textContent = s.name;
+  const p = s.plan || 'standard';
+  $('plan_tier').value = p;
+  const m = s.modules || { girvi: p !== 'basic', barcode: true, karigar: p === 'gold', gst: true };
+  $('mod_girvi').checked = !!m.girvi;
+  $('mod_barcode').checked = !!m.barcode;
+  $('mod_karigar').checked = !!m.karigar;
+  $('mod_gst').checked = !!m.gst;
+}
+function closePlanModal(){ $('plan_modal').classList.remove('open'); }
+
+function onPlanTierChange(){
+  const t = $('plan_tier').value;
+  if(t === 'basic'){
+    $('mod_girvi').checked = false;
+    $('mod_barcode').checked = true;
+    $('mod_karigar').checked = false;
+    $('mod_gst').checked = true;
+  } else if(t === 'standard'){
+    $('mod_girvi').checked = true;
+    $('mod_barcode').checked = true;
+    $('mod_karigar').checked = false;
+    $('mod_gst').checked = true;
+  } else if(t === 'gold'){
+    $('mod_girvi').checked = true;
+    $('mod_barcode').checked = true;
+    $('mod_karigar').checked = true;
+    $('mod_gst').checked = true;
+  }
+}
+
+async function savePlanSettings(){
+  if(!currentTargetPlanShopId) return;
+  const plan = $('plan_tier').value;
+  const modules = {
+    girvi: $('mod_girvi').checked,
+    barcode: $('mod_barcode').checked,
+    karigar: $('mod_karigar').checked,
+    gst: $('mod_gst').checked
+  };
+  const res = await call(`/api/admin/shops/${currentTargetPlanShopId}/plan`, 'POST', { plan, modules });
+  if(res && res.ok){
+    const s = allShops.find(x => x.id === currentTargetPlanShopId);
+    if(s){ s.plan = plan; s.modules = modules; }
+    closePlanModal();
+    renderDashboard();
+    showToast('⚙️ दुकान का प्लान व फीचर्स अपडेट हो गए!');
+  }
+}
+
+// 🧾 1-Click Subscription Receipt handlers
+function openReceiptModal(shopId){
+  currentTargetReceiptShop = allShops.find(x => x.id === shopId);
+  if(!currentTargetReceiptShop) return;
+  const s = currentTargetReceiptShop;
+  $('receipt_modal').classList.add('open');
+
+  $('rec_upi_id').textContent = adminSettings.upiId || 'sone-sathi@upi';
+  const recNo = `SS-REC-2026-${(s.id||'SH').toUpperCase()}-${Math.floor(Date.now() / 1000).toString().slice(-4)}`;
+  $('rec_no').textContent = recNo;
+  $('rec_date').textContent = new Date().toLocaleDateString('en-IN');
+  $('rec_shop_name').textContent = s.name;
+  $('rec_shop_phone').textContent = s.phone || '-';
+  $('rec_shop_addr').textContent = s.address || 'India';
+  $('rec_license_key').textContent = s.key;
+  $('rec_shop_gst').textContent = s.gstin || 'Unregistered / Retail';
+  
+  const planName = s.plan === 'gold' ? '👑 Gold All-Inclusive' : (s.plan === 'basic' ? '🔹 Basic' : '⭐ Standard');
+  $('rec_plan_name').textContent = planName;
+  $('rec_valid_until').textContent = new Date(s.paidUntil).toLocaleDateString('en-IN');
+  
+  const fee = adminSettings.monthlyFee || 999;
+  $('rec_amount').textContent = `₹${fee.toFixed(2)}`;
+  $('rec_total_amount').textContent = `₹${fee.toFixed(2)}`;
+}
+function closeReceiptModal(){ $('receipt_modal').classList.remove('open'); }
+
+function printReceipt(){
+  const printContent = $('printable_receipt').innerHTML;
+  const win = window.open('', '_blank', 'width=800,height=900');
+  win.document.write(`
+    <!DOCTYPE html><html><head><title>Sone Sathi Subscription Receipt</title>
+    <style>
+      body { font-family: system-ui, -apple-system, sans-serif; padding: 30px; color: #0f172a; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+    </style>
+    </head><body>
+      ${printContent}
+      <script>window.onload = function(){ window.print(); window.close(); }<\/script>
+    </body></html>
+  `);
+  win.document.close();
+}
+
+function sendReceiptWA(){
+  if(!currentTargetReceiptShop) return;
+  const s = currentTargetReceiptShop;
+  const phone = s.phone || prompt('Grahak ka WhatsApp Number:');
+  if(!phone) return;
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const p = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+  const fee = adminSettings.monthlyFee || 999;
+  const recNo = $('rec_no').textContent;
+
+  let msg = `🧾 *SONE SATHI SOFTWARE - आधिकारिक रसीद (PAID)* 💎\n\n`;
+  msg += `नमस्ते *${(s.name || 'ज्वेलर्स').toUpperCase()}* जी,\n`;
+  msg += `आपके सॉफ़्टवेयर नवीनीकरण (Subscription Renewal) का भुगतान सफलतापूर्वक प्राप्त हुआ है।\n\n`;
+  msg += `📄 *रसीद क्रमांक:* \`${recNo}\`\n`;
+  msg += `📅 *भुगतान तारीख:* ${new Date().toLocaleDateString('en-IN')}\n`;
+  msg += `🏢 *दुकान:* ${s.name}\n`;
+  msg += `🔑 *लाइसेंस कुंजी:* \`${s.key}\`\n`;
+  msg += `⌛ *अगली नवीनीकरण तिथि:* *${new Date(s.paidUntil).toLocaleDateString('en-IN')}*\n`;
+  msg += `💰 *कुल प्राप्त राशि:* ₹${fee}/- (PAID ✓)\n`;
+  msg += `💳 *भुगतान माध्यम:* UPI / Online\n\n`;
+  msg += `धन्यवाद! आपका व्यवसाय दिन दूनी रात चौगुनी तरक्की करे।\n`;
+  msg += `_— Sone Sathi Software Billing Team_\n`;
+  msg += `📞 सहायता: +91 8052933285`;
+
+  window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
+}
 
 function updateBroadcastPreview(){
   const t = $('bc_type')?.value || 'info';
@@ -1185,22 +1615,24 @@ function updateAdminLogoPrev(){
 // Main Data Fetch
 async function load(){
   try {
-    const [shopsRes, annRes, setRes, dbRes] = await Promise.all([
+    const [shopsRes, annRes, setRes, dbRes, appUpRes] = await Promise.all([
       call('/api/admin/shops'),
       call('/api/admin/announcement').catch(()=>null),
       call('/api/admin/settings').catch(()=>null),
-      call('/api/admin/db-status').catch(()=>null)
+      call('/api/admin/db-status').catch(()=>null),
+      call('/api/admin/app-update').catch(()=>null)
     ]);
     allShops = shopsRes || [];
     if(annRes) currentAnnouncement = annRes;
     if(setRes) adminSettings = setRes;
+    if(appUpRes) currentAppUpdate = appUpRes;
 
     renderDbStatus(dbRes);
     renderBroadcastBar();
     renderDashboard();
   } catch(e) {
     console.error(e);
-    $('tb').innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:#ef4444">Data load karne me truti hui. Refresh karein.</td></tr>`;
+    $('tb').innerHTML = `<tr><td colspan="10" style="text-align:center;padding:24px;color:#ef4444">Data load karne me truti hui. Refresh karein.</td></tr>`;
   }
 }
 
@@ -1229,13 +1661,17 @@ function renderDbStatus(db){
 
 function renderDashboard(){
   const now = Date.now();
-  let act = 0, due = 0, bks = 0, staleBackups = 0;
+  let act = 0, due = 0, bks = 0, staleBackups = 0, totalInvoices = 0;
 
   allShops.forEach(s => {
     const exp = s.paidUntil < now, sus = s.status === 'suspended';
     if(!exp && !sus) act++;
     if(exp) due++;
     if(s.bk) bks++;
+
+    if(s.telemetry && s.telemetry.invoicesCount){
+      totalInvoices += s.telemetry.invoicesCount;
+    }
 
     // Stale backup check: > 7 days or missing backup
     const lastBkTime = s.bk ? s.bk.time : 0;
@@ -1251,6 +1687,7 @@ function renderDashboard(){
   $('kpi_due').textContent = due;
   $('kpi_mrr').textContent = '₹' + mrrAmount.toLocaleString('en-IN');
   $('kpi_backups').textContent = bks;
+  if($('kpi_invoices')) $('kpi_invoices').textContent = totalInvoices.toLocaleString('en-IN');
   $('st_badge').textContent = `कुल ${allShops.length} दुकानें · ${act} सक्रिय · ${due} बकाया`;
 
   const staleBadge = $('stale_alert_count_badge');
@@ -1383,6 +1820,38 @@ function renderFilteredTable(){
 
     const showRenewalBtn = (exp || diffDays <= 7);
 
+    const planNames = { basic: '🔹 Basic (₹499)', standard: '⭐ Standard (₹999)', gold: '👑 Gold (₹1499)' };
+    const currentPlan = s.plan || 'standard';
+    const mods = s.modules || { girvi: currentPlan !== 'basic', barcode: true, karigar: currentPlan === 'gold', gst: true };
+    const planHtml = `
+      <div>
+        <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:${currentPlan==='gold'?'#fef3c7':(currentPlan==='basic'?'#f1f5f9':'#e0f2fe')};color:${currentPlan==='gold'?'#92400e':(currentPlan==='basic'?'#334155':'#0369a1')}">${planNames[currentPlan] || 'Standard'}</span>
+        <div style="font-size:10.5px;color:#64748b;margin-top:4px;display:flex;gap:3px;align-items:center">
+          <span title="Girvi / Loan" style="opacity:${mods.girvi?1:0.3}">🔒</span>
+          <span title="Barcode Scanner" style="opacity:${mods.barcode?1:0.3}">🏷️</span>
+          <span title="Karigar Khata" style="opacity:${mods.karigar?1:0.3}">🛠️</span>
+          <span title="GST Invoicing" style="opacity:${mods.gst?1:0.3}">🧾</span>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="openPlanModal('${s.id}')" style="font-size:10px;padding:1px 6px;margin-top:3px">⚙️ Edit Plan</button>
+      </div>
+    `;
+
+    let telemetryHtml = '';
+    if(s.telemetry){
+      const t = s.telemetry;
+      const ageHours = (now - (t.updatedAt || 0)) / 36e5;
+      const actColor = ageHours < 24 ? '#047857' : (ageHours < 168 ? '#b45309' : '#dc2626');
+      const actText = ageHours < 24 ? '🟢 Aaj Active' : (ageHours < 168 ? '🟡 Is Hafte' : '⚠️ >7 Din Se Band');
+      telemetryHtml = `
+        <div style="font-size:12px;font-weight:700;color:#0f172a">🧾 ${t.invoicesCount || 0} Bills</div>
+        <div style="font-size:11px;color:#475569">👥 ${t.customersCount || 0} Grahak · 💎 ${t.stockCount || 0} Stock</div>
+        <div style="font-size:10.5px;color:#64748b">v${t.appVersion || '1.0.0'} (${t.os || 'PC'})</div>
+        <div style="font-size:10.5px;font-weight:700;color:${actColor};margin-top:2px">${actText}</div>
+      `;
+    } else {
+      telemetryHtml = `<span style="font-size:11px;color:#94a3b8;font-style:italic">App khulte hi sync hoga</span>`;
+    }
+
     return `
       <tr>
         <td>
@@ -1397,6 +1866,8 @@ function renderFilteredTable(){
         </td>
 
         <td style="white-space:nowrap">${logoHtml}</td>
+
+        <td>${planHtml}</td>
 
         <td>
           <div style="display:flex;align-items:center;gap:6px">
@@ -1426,12 +1897,13 @@ function renderFilteredTable(){
 
         <td>${statusBadge}</td>
 
-        <td style="font-size:12px;color:#475569">${dt(s.lastSeen)}</td>
+        <td>${telemetryHtml}</td>
 
         <td>${bkHealthHtml}</td>
 
         <td style="text-align:right;white-space:nowrap">
           <div style="display:flex;gap:4px;justify-content:flex-end;align-items:center;margin-bottom:4px">
+            <button class="btn btn-outline btn-sm" onclick="openReceiptModal('${s.id}')" title="1-Click Subscription Invoice / Receipt" style="border-color:#3b82f6;color:#1d4ed8;background:#eff6ff;font-weight:700">🧾 रसीद</button>
             ${showRenewalBtn ? `
               <button class="btn btn-outline btn-sm" onclick="sendRenewalReminderWA('${s.id}')" title="1-Click WhatsApp Subscription Renewal Notice" style="border-color:#f59e0b;color:#b45309;background:#fffbeb;font-weight:700">📲 तगादा</button>
             ` : ''}
@@ -1478,6 +1950,7 @@ async function addShop(){
     address: $('addr').value.trim(),
     gstin: $('gst').value.trim(),
     months: $('mo').value,
+    plan: $('add_plan') ? $('add_plan').value : 'standard',
     logo: currentLogoData
   });
 
@@ -1653,6 +2126,47 @@ function exportShopsCSV(){
   a.download = `Sone_Sathi_Registered_Shops_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   showToast('📥 Master Shops CSV Downloaded!');
+}
+
+// 💾 1-Click Export data.json (for Hostinger or local backup)
+function exportDataJSON(){
+  const payload = {
+    shops: allShops.map(s => {
+      const { bk, ...rest } = s;
+      return rest;
+    }),
+    announcement: currentAnnouncement || { active: false, text: '', type: 'info' },
+    adminSettings: adminSettings || { upiId: 'sone-sathi@upi', upiName: 'Sone Sathi Software', monthlyFee: 999, quarterlyFee: 2499, yearlyFee: 7999 },
+    appUpdate: currentAppUpdate || { version: '1.0.0', downloadUrl: '', notes: '' }
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'data.json';
+  a.click();
+  showToast('💾 data.json डाउनलोड हो गया!', '✓');
+}
+
+// 🔑 1-Click Export keys.json (for cryptographic signing keys)
+async function exportKeysJSON(){
+  try {
+    const k = await call('/api/admin/keys');
+    if(!k || !k.pub){
+      alert('Keys prapt nahi hui.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(k, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'keys.json';
+    a.click();
+    showToast('🔑 keys.json डाउनलोड हो गया!', '✓');
+  } catch(e) {
+    console.error(e);
+    alert('Keys download karne me dikkat aayi');
+  }
 }
 
 load();
