@@ -124,8 +124,28 @@ app.post('/api/license/check',(req,res)=>{
   const {key,deviceId,recoveryKey,metrics}=req.body||{},d=load(),s=d.shops.find(x=>x.key===key);
   if(!s)return res.status(404).json({error:'Key galat hai'});
   if(s.status==='suspended')return res.status(403).json({error:'Account band hai. Provider se baat karein'});
-  if(!s.deviceId)s.deviceId=deviceId;
-  if(s.deviceId!==deviceId)return res.status(409).json({error:'Ye key doosre computer par lagi hai'});
+
+  let migrated = false;
+  const reqRecKey = (recoveryKey && typeof recoveryKey === 'string') ? recoveryKey.trim().toUpperCase() : null;
+  const matchRecKey = (reqRecKey && s.recoveryKey && reqRecKey === s.recoveryKey);
+
+  if(!s.deviceId){
+    s.deviceId = deviceId;
+  } else if(s.deviceId !== deviceId){
+    if(s.migrationAllowed || matchRecKey){
+      // Authorized PC Migration
+      s.deviceId = deviceId;
+      s.migrationAllowed = false;
+      s.migratedAt = Date.now();
+      migrated = true;
+    } else {
+      return res.status(409).json({
+        error:'Ye key doosre computer par lagi hai. Naye computer par chalane ke liye Admin se "PC Migration" authorize karwayen ya Recovery Passkey dalein.',
+        locked: true
+      });
+    }
+  }
+
   s.lastSeen=Date.now();
   if(recoveryKey && typeof recoveryKey === 'string' && recoveryKey.trim()){
     s.recoveryKey = recoveryKey.trim().toUpperCase();
@@ -141,7 +161,20 @@ app.post('/api/license/check',(req,res)=>{
     };
   }
   save(d);
-  if(s.paidUntil<Date.now())return res.status(402).json({error:'Monthly payment baaki hai'});
+
+  const isTrial = !!s.isTrial;
+  const trialDaysRemaining = isTrial ? Math.max(0, Math.ceil((s.paidUntil - Date.now()) / DAY)) : null;
+
+  if(s.paidUntil < Date.now()){
+    if(isTrial){
+      return res.status(402).json({
+        error: 'Aapka 7-din ka Free Trial poora ho chuka hai. Software bina kisi rukawat chalate rehne ke liye kripya provider se license renew karein.',
+        isTrial: true,
+        trialExpired: true
+      });
+    }
+    return res.status(402).json({ error: 'Monthly payment baaki hai' });
+  }
 
   const shopPlan = s.plan || 'standard';
   const shopModules = s.modules || {
@@ -151,8 +184,22 @@ app.post('/api/license/check',(req,res)=>{
     gst: true
   };
 
+  const bks = bkList(s);
+  const hasCloudBackup = bks && bks.length > 0;
+  const latestBackup = hasCloudBackup ? bks[0] : null;
+
   res.json({
-    token:sign({key,name:s.name,paidUntil:s.paidUntil,deviceId,checkBy:Date.now()+7*DAY,plan:shopPlan,modules:shopModules}),
+    token:sign({
+      key,
+      name:s.name,
+      paidUntil:s.paidUntil,
+      deviceId,
+      checkBy:Date.now()+7*DAY,
+      plan:shopPlan,
+      modules:shopModules,
+      isTrial:isTrial,
+      trialDaysRemaining:trialDaysRemaining
+    }),
     logo:s.logo||null,
     address:s.address||'',
     phone:s.phone||'',
@@ -161,7 +208,12 @@ app.post('/api/license/check',(req,res)=>{
     announcement: d.announcement || null,
     appUpdate: d.appUpdate || null,
     plan: shopPlan,
-    modules: shopModules
+    modules: shopModules,
+    isTrial: isTrial,
+    trialDaysRemaining: trialDaysRemaining,
+    migrated: migrated,
+    hasCloudBackup: hasCloudBackup,
+    latestBackup: latestBackup
   });
 });
 
@@ -258,20 +310,26 @@ app.use('/api/admin',auth);
 app.get('/api/admin/shops',(q,r)=>r.json(load().shops.map(s=>({...s,bk:bkList(s)[0]||null}))));
 app.get('/api/admin/shops/:id/backup/:name',(q,r)=>{const s=load().shops.find(x=>x.id===q.params.id);if(!s||!BN.test(q.params.name))return r.sendStatus(404);const p=path.join(BK,s.id,q.params.name);if(!fs.existsSync(p))return r.sendStatus(404);
   r.set('Content-Type','application/json').set('Content-Disposition','attachment; filename="'+s.name.replace(/[^\w]/g,'_')+'-'+q.params.name.replace('.gz','')+'"').send(zlib.gunzipSync(fs.readFileSync(p)))});
-app.post('/api/admin/shops',(q,r)=>{const d=load(),m=Number(q.body.months)||0;
+app.post('/api/admin/shops',(q,r)=>{const d=load();
+  const isTrial = !!q.body.isTrial;
+  const trialDays = Number(q.body.trialDays) || 7;
+  const m = Number(q.body.months) || 0;
+  const paidUntil = isTrial ? (Date.now() + trialDays * DAY) : (Date.now() + m * 30 * DAY);
   const plan = q.body.plan || 'standard';
   d.shops.push({
-    id:Date.now().toString(36),
-    name:q.body.name||'Shop',
-    phone:q.body.phone||'',
-    address:q.body.address||'',
-    gstin:q.body.gstin||'',
-    logo:q.body.logo||null,
-    key:mkKey(),
-    status:'active',
-    deviceId:null,
-    lastSeen:null,
-    paidUntil:Date.now()+m*30*DAY,
+    id: Date.now().toString(36),
+    name: q.body.name || 'Shop',
+    phone: q.body.phone || '',
+    address: q.body.address || '',
+    gstin: q.body.gstin || '',
+    logo: q.body.logo || null,
+    key: mkKey(),
+    status: 'active',
+    deviceId: null,
+    lastSeen: null,
+    paidUntil: paidUntil,
+    isTrial: isTrial,
+    trialDays: isTrial ? trialDays : null,
     plan: plan,
     modules: q.body.modules || {
       girvi: plan !== 'basic',
@@ -279,8 +337,24 @@ app.post('/api/admin/shops',(q,r)=>{const d=load(),m=Number(q.body.months)||0;
       karigar: plan === 'gold',
       gst: true
     },
-    telemetry: null
+    telemetry: null,
+    migrationAllowed: false
   });save(d);r.json({ok:1})});
+app.post('/api/admin/shops/:id/convert-trial',(q,r)=>{
+  const d=load(),s=d.shops.find(x=>x.id===q.params.id);
+  if(!s)return r.sendStatus(404);
+  const m = Number(q.body.months) || 1;
+  s.isTrial = false;
+  s.trialDays = null;
+  s.paidUntil = Math.max(s.paidUntil || Date.now(), Date.now()) + m * 30 * DAY;
+  if(q.body.plan) s.plan = q.body.plan;
+  save(d);r.json({ok:1,shop:s})});
+app.post('/api/admin/shops/:id/authorize-migration',(q,r)=>{
+  const d=load(),s=d.shops.find(x=>x.id===q.params.id);
+  if(!s)return r.sendStatus(404);
+  s.deviceId = null;
+  s.migrationAllowed = true;
+  save(d);r.json({ok:1,shop:s,latestBackup:bkList(s)[0]||null})});
 app.post('/api/admin/shops/:id/plan',(q,r)=>{
   const d=load(),s=d.shops.find(x=>x.id===q.params.id);
   if(!s)return r.sendStatus(404);
@@ -300,10 +374,11 @@ app.post('/api/admin/shops/:id/logo',(q,r)=>{
   s.logo=q.body.logo||null;
   save(d);r.json({ok:1})});
 app.post('/api/admin/shops/:id/extend',(q,r)=>{const d=load(),s=d.shops.find(x=>x.id===q.params.id);if(!s)return r.sendStatus(404);
+  s.isTrial=false;s.trialDays=null;
   s.paidUntil=Math.max(s.paidUntil,Date.now())+(Number(q.body.months)||1)*30*DAY;save(d);r.json({ok:1})});
 app.post('/api/admin/shops/:id/recovery-key',(q,r)=>{const d=load(),s=d.shops.find(x=>x.id===q.params.id);if(!s)return r.sendStatus(404);s.recoveryKey=String(q.body.recoveryKey||'').trim().toUpperCase()||null;save(d);r.json({ok:1})});
 app.post('/api/admin/shops/:id/:act',(q,r)=>{const d=load(),s=d.shops.find(x=>x.id===q.params.id);if(!s)return r.sendStatus(404);
-  const a=q.params.act;if(a==='suspend')s.status='suspended';else if(a==='resume')s.status='active';else if(a==='reset')s.deviceId=null;else return r.sendStatus(400);save(d);r.json({ok:1})});
+  const a=q.params.act;if(a==='suspend')s.status='suspended';else if(a==='resume')s.status='active';else if(a==='reset'){s.deviceId=null;s.migrationAllowed=true;}else return r.sendStatus(400);save(d);r.json({ok:1})});
 app.delete('/api/admin/shops/:id',(q,r)=>{const d=load();d.shops=d.shops.filter(x=>x.id!==q.params.id);save(d);r.json({ok:1})});
 
 // Announcement / In-App Broadcast endpoints
