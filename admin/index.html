@@ -2,113 +2,966 @@
 <html lang="hi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light">
-<title>Sone Sathi – Admin Panel & License Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sone Sathi – Master Cloud Console & License Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:light}
-body{font:14px system-ui,sans-serif;margin:20px;background:#faf6ec;color:#2a2418;max-width:1300px;margin:20px auto}
-h1{color:#b07d00;margin:0 0 12px 0;display:flex;align-items:center;gap:8px}
-.card{background:#fff;border:1px solid #dcd1be;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:18px}
-table{border-collapse:collapse;width:100%;font-size:13px}
-td,th{border-bottom:1px solid #e0d7c5;padding:8px 6px;text-align:left;vertical-align:middle}
-th{background:#f4ece0;font-weight:700}
-input,select{padding:7px 10px;border:1px solid #c9bda5;border-radius:6px;font-size:13px}
-button{background:#b07d00;color:#fff;border:0;border-radius:6px;padding:6px 12px;margin:2px;cursor:pointer;font-weight:600;font-size:12px}
-button:hover{opacity:0.9}
-button.d{background:#c5221f}
-button.g{background:#e8f0fe;color:#1a73e8;border:1px solid #cce0ff}
-button.s{background:#f1f3f4;color:#333;border:1px solid #ccc}
-.ok{color:#137333;font-weight:600}
-.bad{color:#c5221f;font-weight:600}
-code{user-select:all;background:#f3efe6;padding:2px 5px;border-radius:4px;font-family:monospace;font-size:13px;color:#855d00;font-weight:700}
-.w{overflow-x:auto}
-.logo-thumb{max-height:42px;max-width:90px;object-fit:contain;border:1px solid #d4af37;border-radius:4px;background:#fff;padding:2px}
-.form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:6px}
-.f-group{display:flex;flex-direction:column;gap:3px}
-.f-group label{font-size:12px;font-weight:600;color:#555}
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-alt: #f1f5f9;
+  --border: #e2e8f0;
+  --border-focus: #d4af37;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --gold: #b45309;
+  --gold-light: #fffdf0;
+  --gold-border: #f59e0b;
+  --gold-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+  --warning: #f59e0b;
+  --warning-bg: #fffbeb;
+  --primary: #2563eb;
+  --primary-bg: #eff6ff;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 60px;
+}
+
+/* TOP NAVBAR */
+.navbar {
+  background: #0f172a;
+  color: #fff;
+  border-bottom: 2px solid #d4af37;
+  padding: 14px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+.nav-container {
+  max-width: 1420px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  background: var(--gold-gradient);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 2px 10px rgba(217,119,6,0.35);
+}
+.brand-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  background: rgba(212,175,55,0.2);
+  color: #fde047;
+  border: 1px solid rgba(253,224,71,0.3);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary {
+  background: var(--gold-gradient);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(180,83,9,0.3);
+}
+.btn-secondary {
+  background: #1e293b;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+.btn-secondary:hover { background: #334155; }
+.btn-outline {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-main);
+}
+.btn-outline:hover { background: var(--surface-alt); }
+.btn-sm {
+  padding: 4px 9px;
+  font-size: 11.5px;
+  border-radius: 6px;
+}
+.btn-danger {
+  background: #fef2f2;
+  color: #ef4444;
+  border-color: #fecaca;
+}
+.btn-danger:hover { background: #fee2e2; }
+
+/* MAIN CONTAINER */
+.container {
+  max-width: 1420px;
+  margin: 24px auto;
+  padding: 0 20px;
+}
+
+/* HERO STATS KPI GRID */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.kpi-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+.kpi-subtext {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* SECTION CONTAINER / CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* TOOLBAR & SEARCH */
+.toolbar {
+  padding: 14px 20px;
+  background: #fafaf9;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+  max-width: 450px;
+}
+.search-box input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-box input:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+}
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pill {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+.pill:hover { border-color: #cbd5e1; color: var(--text-main); }
+.pill.active {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+
+/* DATA TABLE */
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+tbody tr {
+  transition: background-color 0.1s;
+}
+tbody tr:hover {
+  background: #fdfdf9;
+}
+
+/* CODE BADGE & STATUS */
+.code-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  user-select: all;
+}
+.recovery-badge {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+.copy-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.1s;
+}
+.copy-btn:hover { color: var(--gold); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.badge-active {
+  background: var(--success-bg);
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.badge-active .badge-dot { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.8); }
+.badge-due {
+  background: var(--danger-bg);
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.badge-due .badge-dot { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.8); }
+.badge-suspended {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+.badge-suspended .badge-dot { background: #64748b; }
+
+.logo-preview-box {
+  width: 76px;
+  height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  overflow: hidden;
+}
+.logo-preview-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* MODAL STYLING */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15,23,42,0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+.modal-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  transform: scale(0.96);
+  transition: transform 0.2s ease;
+}
+.modal-overlay.open .modal-card {
+  transform: scale(1);
+}
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-body {
+  padding: 20px 24px;
+}
+.modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* FORM CONTROLS */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-group.full { grid-column: 1 / -1; }
+.form-group label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+.form-group input, .form-group select, .form-group textarea {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+}
+
+/* TOAST NOTIFICATION */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: #0f172a;
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-lg);
+  border-left: 4px solid #10b981;
+  animation: slideIn 0.25s ease;
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media(max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .nav-container { flex-direction: column; align-items: flex-start; }
+  .nav-actions { width: 100%; justify-content: space-between; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .search-box { max-width: 100%; }
+}
 </style>
 </head>
 <body>
-<h1>💎 Sone Sathi – Admin Panel & Shop License Manager</h1>
 
-<!-- 1. NAYI DUKAAN REGISTER KAREIN (WITH LOGO) -->
-<div class="card">
-  <b>🏢 Nayi Dukaan Register Karein (With Shop Logo & Details)</b>
-  <div class="form-row">
-    <div class="f-group" style="flex:1.5;min-width:160px">
-      <label>Dukaan ka Naam</label>
-      <input id="nm" placeholder="e.g. Shree Sone Sathi Jewellers">
+<!-- TOP NAV -->
+<header class="navbar">
+  <div class="nav-container">
+    <a href="#" class="brand">
+      <div class="brand-icon">💎</div>
+      <div>
+        <div class="brand-title">
+          <span>SONE SATHI</span>
+          <span class="brand-badge">CLOUD CONSOLE</span>
+          <span id="db_status_pill" onclick="openMongoGuideModal()" title="Click to view DB Cloud Setup Guide" style="cursor:pointer;font-size:10px;padding:3px 8px;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;margin-left:6px;background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(250,204,21,0.3);letter-spacing:0.5px">
+            <span>🟡</span><span>Checking DB...</span>
+          </span>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;font-weight:500">Centralized License Management & SaaS Control Panel</div>
+      </div>
+    </a>
+    <div class="nav-actions">
+      <button class="btn btn-primary" onclick="openAddModal()">
+        <span>+ Nayi Dukaan Register Karein</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="openAnnouncementModal()" title="Sabhi dukaano ko In-App Announcement bhejein">
+        <span>📢 Broadcast Notice</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="openSettingsModal()" title="Pricing & Payment UPI Settings">
+        <span>⚙️ Pricing & UPI</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="openMongoGuideModal()" title="MongoDB Atlas Cloud Setup Guide">
+        <span>☁️ DB Setup</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="exportShopsCSV()" title="Master Shops Excel/CSV Download">
+        <span>📥 Export Master CSV</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="load()" title="Data Refresh">
+        <span>🔄 Refresh</span>
+      </button>
     </div>
-    <div class="f-group" style="flex:1;min-width:120px">
-      <label>Mobile Number</label>
-      <input id="ph" placeholder="10-digit mobile">
+  </div>
+</header>
+
+<main class="container">
+  <!-- DB STORAGE STATUS ALERT BANNER (Shows when MongoDB is not connected) -->
+  <div id="mongo_warning_banner" style="display:none;margin-bottom:20px;padding:14px 20px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;align-items:center;justify-content:space-between;gap:12px;box-shadow:var(--shadow-sm)">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:24px">⚠️</span>
+      <div>
+        <div style="font-weight:700;color:#92400e;font-size:13.5px">सावधानी: वर्तमान में सर्वर Local Disk पर चल रहा है (Temporary Storage)</div>
+        <div style="font-size:12px;color:#b45309;margin-top:2px">Render Free Web Service इनएक्टिविटी के बाद रिस्टार्ट होने पर लोकल फाइल्स रीसेट कर देती है। सभी दुकानों और बैकअप्स को लाइफटाइम सुरक्षित रखने के लिए MongoDB Atlas जोड़ें।</div>
+      </div>
     </div>
-    <div class="f-group" style="flex:1.5;min-width:160px">
-      <label>Pata / Shahar (Address)</label>
-      <input id="addr" placeholder="e.g. Main Sarafa Bazar, Chowk">
-    </div>
-    <div class="f-group" style="flex:1;min-width:130px">
-      <label>GSTIN No. (Optional)</label>
-      <input id="gst" placeholder="GSTIN number">
-    </div>
-    <div class="f-group" style="width:85px">
-      <label>Validity</label>
-      <input id="mo" type="number" value="1" title="Kitne mahine">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="openMongoGuideModal()">☁️ 2-Min Setup Guide</button>
     </div>
   </div>
 
-  <div class="form-row" style="margin-top:12px;align-items:center">
-    <div class="f-group" style="flex:2;min-width:240px">
-      <label><b>🖼️ Dukaan ka Logo & Bill Watermark</b> (Admin se set karein)</label>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="file" id="adm_logo_input" accept="image/*" onchange="handleAdminLogoFile(event)" style="font-size:12px">
-        <button type="button" class="s" onclick="setAdminDefaultLogo()" title="Royal Jewellery Default Logo Set Karein">✨ Royal Logo</button>
-        <button type="button" class="s" onclick="clearAdminLogo()" title="Logo Hatao">✕</button>
+  <!-- DB STORAGE SUCCESS BANNER (Shows when MongoDB is connected) -->
+  <div id="mongo_success_banner" style="display:none;margin-bottom:20px;padding:12px 18px;border-radius:10px;background:#ecfdf5;border:1px solid #a7f3d0;align-items:center;justify-content:space-between;gap:12px;box-shadow:var(--shadow-sm)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">🟢</span>
+      <div style="font-size:12.5px;font-weight:600;color:#065f46">
+        MongoDB Atlas Cloud Connected: आपकी सभी दुकानों का डेटा, लाइसेंस कुंजियां और क्लाउड बैकअप्स 100% स्थायी और सुरक्षित हैं।
       </div>
     </div>
-    <div id="adm_logo_prev" style="min-width:100px">
-      <span style="font-size:12px;color:#777">Koi logo chuna nahi hai</span>
+    <button class="btn btn-secondary btn-sm" onclick="openMongoGuideModal()" style="font-size:11.5px;padding:4px 10px">DB Info</button>
+  </div>
+
+  <!-- 1. EXECUTIVE KPI HERO CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card" style="border-top:3px solid #b45309">
+      <div class="kpi-header">
+        <span class="kpi-label">कुल दुकानें (Total Shops)</span>
+        <div class="kpi-icon" style="background:#fffdf0;color:#b45309">🏢</div>
+      </div>
+      <div class="kpi-value" id="kpi_total">0</div>
+      <div class="kpi-subtext" id="kpi_total_sub">All time registered clients</div>
     </div>
-    <div style="margin-left:auto">
-      <button onclick="addShop()" style="font-size:13px;padding:8px 16px">+ Nayi Dukaan Register Karein</button>
+
+    <div class="kpi-card" style="border-top:3px solid #10b981">
+      <div class="kpi-header">
+        <span class="kpi-label">सक्रिय लाइसेंस (Active Clients)</span>
+        <div class="kpi-icon" style="background:#ecfdf5;color:#10b981">🟢</div>
+      </div>
+      <div class="kpi-value" id="kpi_active" style="color:#047857">0</div>
+      <div class="kpi-subtext" id="kpi_active_sub">Valid & running installations</div>
+    </div>
+
+    <div class="kpi-card" style="border-top:3px solid #ef4444">
+      <div class="kpi-header">
+        <span class="kpi-label">पेमेंट बकाया (Payment Due)</span>
+        <div class="kpi-icon" style="background:#fef2f2;color:#ef4444">⏰</div>
+      </div>
+      <div class="kpi-value" id="kpi_due" style="color:#b91c1c">0</div>
+      <div class="kpi-subtext">Subscription expired</div>
+    </div>
+
+    <div class="kpi-card" style="border-top:3px solid #f59e0b">
+      <div class="kpi-header">
+        <span class="kpi-label">अनुमानित MRR (Monthly Revenue)</span>
+        <div class="kpi-icon" style="background:#fffbeb;color:#b45309">💰</div>
+      </div>
+      <div class="kpi-value" id="kpi_mrr" style="color:#b45309">₹0</div>
+      <div class="kpi-subtext" id="kpi_mrr_sub">Based on ₹999/mo subscription</div>
+    </div>
+
+    <div class="kpi-card" style="border-top:3px solid #2563eb">
+      <div class="kpi-header">
+        <span class="kpi-label">क्लाउड बैकअप्स (Cloud Backups)</span>
+        <div class="kpi-icon" style="background:#eff6ff;color:#2563eb">☁️</div>
+      </div>
+      <div class="kpi-value" id="kpi_backups" style="color:#1d4ed8">0</div>
+      <div class="kpi-subtext" id="kpi_backups_sub">Synced shop databases</div>
+    </div>
+  </div>
+
+  <!-- 2. LIVE ANNOUNCEMENT PREVIEW BAR (IF ACTIVE) -->
+  <div id="active_broadcast_bar" style="display:none;margin-bottom:20px;padding:12px 18px;border-radius:10px;align-items:center;justify-content:space-between;box-shadow:var(--shadow-sm)">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="active_bc_icon" style="font-size:20px">📢</span>
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;font-weight:800;letter-spacing:1px;opacity:0.9">🔴 LIVE IN-APP BROADCAST ACTIVE (सभी दुकानों को दिख रहा है)</div>
+        <div id="active_bc_text" style="font-weight:700;font-size:13.5px;margin-top:2px"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary btn-sm" onclick="openAnnouncementModal()">✏️ Edit</button>
+      <button class="btn btn-outline btn-sm" onclick="turnOffAnnouncement()" style="background:rgba(255,255,255,0.2);color:#fff;border-color:transparent">✕ Turn Off</button>
+    </div>
+  </div>
+
+  <!-- 3. SHOPS MANAGEMENT TABLE CARD -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <span>📋 पंजीकृत दुकानें व लाइसेंस डायरेक्टरी (Registered Shops Directory)</span>
+        <span id="st_badge" style="font-size:12px;background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:12px;font-weight:600">Loading...</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="stale_alert_count_badge" style="display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700">⚠️ Stale Backups: 0</span>
+      </div>
+    </div>
+
+    <!-- TOOLBAR & FILTERS -->
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search_input" placeholder="Dukaan ka naam, mobile, license key ya shahar khojein..." oninput="onSearchChange()">
+      </div>
+      <div class="filter-pills">
+        <button class="pill active" onclick="setFilter('all', this)">सभी (All)</button>
+        <button class="pill" onclick="setFilter('active', this)">🟢 Active</button>
+        <button class="pill" onclick="setFilter('due', this)">⏰ Payment Due</button>
+        <button class="pill" onclick="setFilter('stale', this)">⚠️ Stale Backup</button>
+        <button class="pill" onclick="setFilter('suspended', this)">🚫 Suspended</button>
+        <button class="pill" onclick="setFilter('backup', this)">☁️ Has Backup</button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>दुकान व संपर्क विवरण</th>
+            <th>लोगो</th>
+            <th>लाइसेंस कुंजी (License Key)</th>
+            <th>🔑 पासकी रिकवरी</th>
+            <th>वैधता (Validity)</th>
+            <th>स्थिति (Status)</th>
+            <th>अंतिम ऑनलाइन</th>
+            <th>क्लाउड बैकअप हेल्थ</th>
+            <th style="text-align:right">त्वरित एक्शन (Actions)</th>
+          </tr>
+        </thead>
+        <tbody id="tb">
+          <tr><td colspan="9" style="text-align:center;padding:32px;color:#64748b">Loading shop data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- 4. NAYI DUKAAN REGISTER MODAL -->
+<div class="modal-overlay" id="add_modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <b style="font-size:16px;color:#0f172a">🏢 नई दुकान का लाइसेंस बनाएं (Register New Shop)</b>
+      <button class="btn btn-outline btn-sm" onclick="closeAddModal()" style="border:none;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>दुकान का नाम (Shop Name) *</label>
+          <input id="nm" placeholder="e.g. Shree Sone Sathi Jewellers" required>
+        </div>
+        <div class="form-group">
+          <label>मोबाइल नंबर (Owner Mobile) *</label>
+          <input id="ph" placeholder="10-digit mobile number" maxlength="15">
+        </div>
+        <div class="form-group">
+          <label>GSTIN नंबर (वैकल्पिक)</label>
+          <input id="gst" placeholder="e.g. 09AAAPL1234F1Z5">
+        </div>
+        <div class="form-group full">
+          <label>दुकान का पूरा पता / बाज़ार / शहर (Address)</label>
+          <input id="addr" placeholder="e.g. Main Sarafa Bazar, Chowk, Lucknow">
+        </div>
+        <div class="form-group full">
+          <label>प्रारंभिक वैधता (Initial Subscription Validity)</label>
+          <select id="mo">
+            <option value="1">1 महीना (1 Month License)</option>
+            <option value="3">3 महीने (Quarterly)</option>
+            <option value="6">6 महीने (Half-Yearly)</option>
+            <option value="12" selected>1 साल / 12 महीने (Annual License)</option>
+            <option value="24">2 साल (Bi-Annual)</option>
+          </select>
+        </div>
+        <div class="form-group full" style="background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0">
+          <label style="display:flex;align-items:center;justify-content:space-between">
+            <span>🖼️ दुकान का लोगो व बिल वाटरमार्क (Shop Logo)</span>
+            <span style="font-size:11px;font-weight:normal;color:#64748b">Optional / Admin pre-set</span>
+          </label>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap">
+            <input type="file" id="adm_logo_input" accept="image/*" onchange="handleAdminLogoFile(event)" style="font-size:12px;flex:1;min-width:180px">
+            <button type="button" class="btn btn-outline btn-sm" onclick="setAdminDefaultLogo()">✨ Royal Logo</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="clearAdminLogo()" style="color:#ef4444">✕ Clear</button>
+          </div>
+          <div id="adm_logo_prev" style="margin-top:8px">
+            <span style="font-size:12px;color:#94a3b8">कोई लोगो चुना नहीं है</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeAddModal()">रद्द करें (Cancel)</button>
+      <button class="btn btn-primary" onclick="addShop()">✨ लाइसेंस बनाएं व सेव करें</button>
     </div>
   </div>
 </div>
 
-<!-- 2. REGISTERED SHOPS TABLE -->
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <b>📋 Registered Shops & Licenses</b>
-    <span id="st" style="font-weight:600;color:#555"></span>
+<!-- 5. IN-APP ANNOUNCEMENT BROADCAST MODAL -->
+<div class="modal-overlay" id="announcement_modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <b style="font-size:16px;color:#0f172a">📢 सभी दुकानों को ब्रॉडकास्ट नोटिस भेजें (In-App Announcement)</b>
+      <button class="btn btn-outline btn-sm" onclick="closeAnnouncementModal()" style="border:none;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:#64748b;margin-bottom:14px">
+        यह संदेश उन सभी सुनारों के कंप्यूटर सॉफ़्टवेयर में ऊपर लाइव बैनर के रूप में दिखेगा जिनके पास Sone Sathi चल रहा है।
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+            <input type="checkbox" id="bc_active" style="width:18px;height:18px;accent-color:#10b981">
+            <span><b>🔴 इस ब्रॉडकास्ट नोटिस को LIVE चालू (Active) करें</b></span>
+          </label>
+        </div>
+        <div class="form-group full">
+          <label>संदेश का प्रकार (Notice Category)</label>
+          <select id="bc_type" onchange="updateBroadcastPreview()">
+            <option value="info">ℹ️ सामान्य सूचना (General Notice / Information)</option>
+            <option value="offer">🎉 त्योहार / दीवाली ऑफर (Festive Offer & Promo)</option>
+            <option value="alert">⚡ नया सॉफ़्टवेयर अपडेट उपलब्ध है (Software Update v1.1)</option>
+            <option value="maintenance">⚠️ सर्वर मेंटेनेंस सूचना (Server Downtime Alert)</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>ब्रॉडकास्ट संदेश (Message Text) *</label>
+          <textarea id="bc_text" rows="3" placeholder="e.g. 🔔 Sone Sathi v1.1 Update Available! New Karigar Job Cards & Tag Studio added." oninput="updateBroadcastPreview()" style="font-size:13.5px;padding:10px"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>लाइव प्रीव्यू (दुकानदार के स्क्रीन पर ऐसा दिखेगा):</label>
+          <div id="bc_preview_box" style="padding:10px 16px;border-radius:8px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:10px">
+            <span id="bc_prev_icon">📢</span>
+            <span id="bc_prev_text">संदेश लिखें...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeAnnouncementModal()">रद्द करें</button>
+      <button class="btn btn-primary" onclick="saveAnnouncement()">📢 ब्रॉडकास्ट पब्लिश करें</button>
+    </div>
   </div>
-  <div class="w">
-    <table>
-      <thead>
-        <tr>
-          <th>Dukaan & Sampark</th>
-          <th>Logo / Watermark</th>
-          <th>License Key</th>
-          <th>🔑 Recovery Key</th>
-          <th>Payment Tak</th>
-          <th>Status</th>
-          <th>Last Online</th>
-          <th>Cloud Backup</th>
-          <th style="text-align:right">Action</th>
-        </tr>
-      </thead>
-      <tbody id="tb"></tbody>
-    </table>
+</div>
+
+<!-- 6. PRICING & UPI SETTINGS MODAL -->
+<div class="modal-overlay" id="settings_modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <b style="font-size:16px;color:#0f172a">⚙️ एडमिन पेमेंट UPI व सब्सक्रिप्शन दरें (Pricing & UPI Config)</b>
+      <button class="btn btn-outline btn-sm" onclick="closeSettingsModal()" style="border:none;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:#64748b;margin-bottom:14px">
+        ये UPI और फीस डिटेल्स दुकानदारों को ऑटोमैटिक WhatsApp रिन्यूअल तगादा भेजने में काम आती हैं।
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>एडमिन UPI ID (GPay / PhonePe / Paytm) *</label>
+          <input id="adm_upi_id" placeholder="e.g. 9876543210@upi ya business@icici">
+        </div>
+        <div class="form-group">
+          <label>पेई का नाम (Payee Name)</label>
+          <input id="adm_upi_name" placeholder="e.g. Sone Sathi Software">
+        </div>
+        <div class="form-group">
+          <label>मासिक शुल्क (Monthly Fee ₹)</label>
+          <input id="adm_fee_mo" type="number" placeholder="999">
+        </div>
+        <div class="form-group">
+          <label>त्रैमासिक शुल्क (3 Months ₹)</label>
+          <input id="adm_fee_qt" type="number" placeholder="2499">
+        </div>
+        <div class="form-group full">
+          <label>वार्षिक शुल्क (1 Year Annual ₹)</label>
+          <input id="adm_fee_yr" type="number" placeholder="7999">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSettingsModal()">रद्द करें</button>
+      <button class="btn btn-primary" onclick="saveAdminSettings()">💾 सेटिंग्स सेव करें</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. MONGO SETUP GUIDE MODAL -->
+<div class="modal-overlay" id="mongo_guide_modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title">☁️ MongoDB Atlas Free Database Setup Guide</div>
+      <button class="modal-close" onclick="closeMongoGuideModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;font-size:13px;color:#334155;line-height:1.6">
+        Render Free Web Service 15 मिनट इनएक्टिविटी के बाद स्लीप हो जाता है और लोकल फाइल्स वाइप हो जाती हैं। <strong>MongoDB Atlas (M0 Free Cluster)</strong> लाइफटाइम फ्री है और इससे आपकी कोई भी दुकान, लाइसेंस या बैकअप कभी डिलीट नहीं होगा।
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:28px;height:28px;border-radius:50%;background:#dbeafe;color:#1e40af;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px">1</div>
+          <div>
+            <div style="font-weight:700;font-size:13.5px;color:#0f172a">MongoDB Atlas अकाउंट बनाएं</div>
+            <div style="font-size:12.5px;color:#475569;margin-top:2px">
+              <a href="https://www.mongodb.com/cloud/atlas/register" target="_blank" style="color:#2563eb;font-weight:600">mongodb.com/atlas/register ↗</a> पर फ्री अकाउंट बनाएं और <strong>M0 Free Tier</strong> क्लस्टर चुनें (₹0/Lifetime).
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:28px;height:28px;border-radius:50%;background:#dbeafe;color:#1e40af;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px">2</div>
+          <div>
+            <div style="font-weight:700;font-size:13.5px;color:#0f172a">Database User & Network IP सेट करें</div>
+            <div style="font-size:12.5px;color:#475569;margin-top:2px">
+              • <strong>Database Access</strong> टैब में नया यूजर बनाएं (उदा. Username: <code>admin</code>, Password: <code>apna_password</code>)<br>
+              • <strong>Network Access</strong> टैब में Add IP Address पर क्लिक करके <code>0.0.0.0/0</code> (Allow Access from Anywhere) सेलेक्ट करें।
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:28px;height:28px;border-radius:50%;background:#dbeafe;color:#1e40af;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px">3</div>
+          <div>
+            <div style="font-weight:700;font-size:13.5px;color:#0f172a">Connection String कॉपी करें</div>
+            <div style="font-size:12.5px;color:#475569;margin-top:2px">
+              "Connect" बटन दबाएं ➔ "Drivers" (Node.js) चुनें ➔ Connection String कॉपी करें:<br>
+              <code style="display:block;margin-top:4px;padding:8px;background:#0f172a;color:#38bdf8;border-radius:6px;font-size:11.5px;word-break:break-all">mongodb+srv://admin:&lt;password&gt;@cluster0.xxxx.mongodb.net/?retryWrites=true&amp;w=majority</code>
+              <span style="font-size:11px;color:#64748b;display:block;margin-top:3px">* <code>&lt;password&gt;</code> की जगह अपना असली पासवर्ड डालें।</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:28px;height:28px;border-radius:50%;background:#dbeafe;color:#1e40af;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px">4</div>
+          <div>
+            <div style="font-weight:700;font-size:13.5px;color:#0f172a">Render Dashboard में Environment Variable जोड़ें</div>
+            <div style="font-size:12.5px;color:#475569;margin-top:2px">
+              • <a href="https://dashboard.render.com" target="_blank" style="color:#2563eb;font-weight:600">Render Dashboard ↗</a> में अपनी Sone Sathi Web Service खोलें।<br>
+              • बाएँ मेनू से <strong>"Environment"</strong> टैब पर जाएं।<br>
+              • <strong>"Add Environment Variable"</strong> पर क्लिक करें:<br>
+              &nbsp;&nbsp;Key: <code>MONGODB_URI</code><br>
+              &nbsp;&nbsp;Value: <code>mongodb+srv://admin:pass@cluster0...</code><br>
+              • <strong>"Save Changes"</strong> पर क्लिक करें। Render अपने-आप री-डिप्लॉय कर लेगा और स्टेटस 🟢 <strong>Permanent Cloud</strong> हो जाएगा!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeMongoGuideModal()">बंद करें</button>
+      <button class="btn btn-primary" onclick="load();closeMongoGuideModal()">🔄 कनेक्शन रीचेक करें</button>
+    </div>
   </div>
 </div>
 
 <!-- Hidden file input for changing existing shop's logo -->
 <input type="file" id="change_logo_input" accept="image/*" style="display:none" onchange="commitChangeLogo(event)">
 
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast_container"></div>
+
 <script>
 const $ = i => document.getElementById(i);
+let allShops = [];
+let currentFilter = 'all';
+let currentSearch = '';
 let currentLogoData = null;
 let currentTargetShopId = null;
+let adminSettings = { upiId: 'sone-sathi@upi', upiName: 'Sone Sathi Software', monthlyFee: 999, quarterlyFee: 2499, yearlyFee: 7999 };
+let currentAnnouncement = { active: false, text: '', type: 'info' };
 
 const DEFAULT_ROYAL_LOGO = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 140' width='520' height='140'>
   <defs>
@@ -151,6 +1004,132 @@ const call = (u, m, b) => fetch(u, {
 
 const dt = t => t ? new Date(t).toLocaleDateString('en-IN') + ' ' + new Date(t).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-';
 
+function showToast(msg, icon = '✓'){
+  const c = $('toast_container');
+  if(!c) return;
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateY(10px)';
+    t.style.transition = 'all 0.25s ease';
+    setTimeout(() => t.remove(), 250);
+  }, 3200);
+}
+
+// Modal controls
+function openAddModal(){ $('add_modal').classList.add('open'); setTimeout(() => $('nm').focus(), 100); }
+function closeAddModal(){ $('add_modal').classList.remove('open'); }
+
+function openAnnouncementModal(){
+  $('announcement_modal').classList.add('open');
+  $('bc_active').checked = !!currentAnnouncement.active;
+  $('bc_type').value = currentAnnouncement.type || 'info';
+  $('bc_text').value = currentAnnouncement.text || '';
+  updateBroadcastPreview();
+}
+function closeAnnouncementModal(){ $('announcement_modal').classList.remove('open'); }
+
+function openSettingsModal(){
+  $('settings_modal').classList.add('open');
+  $('adm_upi_id').value = adminSettings.upiId || '';
+  $('adm_upi_name').value = adminSettings.upiName || '';
+  $('adm_fee_mo').value = adminSettings.monthlyFee || 999;
+  $('adm_fee_qt').value = adminSettings.quarterlyFee || 2499;
+  $('adm_fee_yr').value = adminSettings.yearlyFee || 7999;
+}
+function closeSettingsModal(){ $('settings_modal').classList.remove('open'); }
+
+function openMongoGuideModal(){ $('mongo_guide_modal').classList.add('open'); }
+function closeMongoGuideModal(){ $('mongo_guide_modal').classList.remove('open'); }
+
+function updateBroadcastPreview(){
+  const t = $('bc_type')?.value || 'info';
+  const txt = $('bc_text')?.value || 'संदेश लिखें...';
+  const styles = {
+    info: { bg: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', icon: '📢' },
+    offer: { bg: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)', color: '#fff', icon: '🎉' },
+    alert: { bg: 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)', color: '#fff', icon: '⚡' },
+    maintenance: { bg: 'linear-gradient(135deg, #581c87 0%, #7c3aed 100%)', color: '#fff', icon: '⚠️' }
+  };
+  const st = styles[t] || styles.info;
+  const p = $('bc_preview_box');
+  if(p){
+    p.style.background = st.bg;
+    p.style.color = st.color;
+    $('bc_prev_icon').textContent = st.icon;
+    $('bc_prev_text').textContent = txt;
+  }
+}
+
+async function saveAnnouncement(){
+  const active = $('bc_active').checked;
+  const type = $('bc_type').value;
+  const text = $('bc_text').value.trim();
+
+  if(active && !text){
+    alert('कृपया संदेश टेक्स्ट लिखें');
+    return;
+  }
+
+  const res = await call('/api/admin/announcement', 'POST', { active, type, text });
+  if(res && res.announcement){
+    currentAnnouncement = res.announcement;
+    renderBroadcastBar();
+    closeAnnouncementModal();
+    showToast(active ? '📢 In-App ब्रॉडकास्ट लाइव चालू हो गया!' : 'ब्रॉडकास्ट बंद कर दिया गया');
+  }
+}
+
+async function turnOffAnnouncement(){
+  const res = await call('/api/admin/announcement', 'POST', { active: false, type: currentAnnouncement.type, text: currentAnnouncement.text });
+  if(res && res.announcement){
+    currentAnnouncement = res.announcement;
+    renderBroadcastBar();
+    showToast('ब्रॉडकास्ट नोटिस बंद कर दिया गया');
+  }
+}
+
+function renderBroadcastBar(){
+  const bar = $('active_broadcast_bar');
+  if(!bar) return;
+  if(currentAnnouncement && currentAnnouncement.active && currentAnnouncement.text){
+    const styles = {
+      info: { bg: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', icon: '📢' },
+      offer: { bg: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)', color: '#fff', icon: '🎉' },
+      alert: { bg: 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)', color: '#fff', icon: '⚡' },
+      maintenance: { bg: 'linear-gradient(135deg, #581c87 0%, #7c3aed 100%)', color: '#fff', icon: '⚠️' }
+    };
+    const st = styles[currentAnnouncement.type] || styles.info;
+    bar.style.background = st.bg;
+    bar.style.color = st.color;
+    $('active_bc_icon').textContent = st.icon;
+    $('active_bc_text').textContent = currentAnnouncement.text;
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function saveAdminSettings(){
+  const upiId = $('adm_upi_id').value.trim();
+  const upiName = $('adm_upi_name').value.trim();
+  const monthlyFee = Number($('adm_fee_mo').value) || 999;
+  const quarterlyFee = Number($('adm_fee_qt').value) || 2499;
+  const yearlyFee = Number($('adm_fee_yr').value) || 7999;
+
+  const res = await call('/api/admin/settings', 'POST', { upiId, upiName, monthlyFee, quarterlyFee, yearlyFee });
+  if(res && res.settings){
+    adminSettings = res.settings;
+    closeSettingsModal();
+    renderDashboard();
+    showToast('⚙️ एडमिन UPI व प्राइसिंग सेटिंग्स सेव हो गईं!');
+  }
+}
+
+// Logo handling
 function handleAdminLogoFile(e){
   const file = e.target.files && e.target.files[0];
   if(!file) return;
@@ -179,6 +1158,7 @@ function handleAdminLogoFile(e){
 function setAdminDefaultLogo(){
   currentLogoData = DEFAULT_ROYAL_LOGO;
   updateAdminLogoPrev();
+  showToast('✨ Royal Jewellery Logo चुना गया');
 }
 
 function clearAdminLogo(){
@@ -191,79 +1171,308 @@ function updateAdminLogoPrev(){
   const p = $('adm_logo_prev');
   if(!p) return;
   if(currentLogoData){
-    p.innerHTML = `<img src="${currentLogoData}" class="logo-thumb"><br><span class="ok" style="font-size:11px">✓ Logo Set</span>`;
+    p.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="logo-preview-box"><img src="${currentLogoData}"></div>
+        <span style="font-size:11.5px;color:#047857;font-weight:700">✓ Logo Selected</span>
+      </div>
+    `;
   } else {
-    p.innerHTML = `<span style="font-size:12px;color:#777">Koi logo chuna nahi hai</span>`;
+    p.innerHTML = `<span style="font-size:12px;color:#94a3b8">कोई लोगो चुना नहीं है</span>`;
   }
 }
 
+// Main Data Fetch
 async function load(){
-  const a = await call('/api/admin/shops');
+  try {
+    const [shopsRes, annRes, setRes, dbRes] = await Promise.all([
+      call('/api/admin/shops'),
+      call('/api/admin/announcement').catch(()=>null),
+      call('/api/admin/settings').catch(()=>null),
+      call('/api/admin/db-status').catch(()=>null)
+    ]);
+    allShops = shopsRes || [];
+    if(annRes) currentAnnouncement = annRes;
+    if(setRes) adminSettings = setRes;
+
+    renderDbStatus(dbRes);
+    renderBroadcastBar();
+    renderDashboard();
+  } catch(e) {
+    console.error(e);
+    $('tb').innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:#ef4444">Data load karne me truti hui. Refresh karein.</td></tr>`;
+  }
+}
+
+function renderDbStatus(db){
+  const pill = $('db_status_pill');
+  const warn = $('mongo_warning_banner');
+  const succ = $('mongo_success_banner');
+  if(!pill) return;
+
+  if(db && db.isMongo){
+    pill.style.background = 'rgba(16,185,129,0.18)';
+    pill.style.color = '#34d399';
+    pill.style.borderColor = 'rgba(52,211,153,0.35)';
+    pill.innerHTML = '<span>🟢</span><span>MongoDB Atlas (Cloud Active)</span>';
+    if(warn) warn.style.display = 'none';
+    if(succ) succ.style.display = 'flex';
+  } else {
+    pill.style.background = 'rgba(245,158,11,0.18)';
+    pill.style.color = '#fbbf24';
+    pill.style.borderColor = 'rgba(251,191,36,0.35)';
+    pill.innerHTML = '<span>🟡</span><span>Local Disk (Temporary)</span>';
+    if(warn) warn.style.display = 'flex';
+    if(succ) succ.style.display = 'none';
+  }
+}
+
+function renderDashboard(){
   const now = Date.now();
-  let act = 0, due = 0;
-  
-  $('tb').innerHTML = a.map(s => {
+  let act = 0, due = 0, bks = 0, staleBackups = 0;
+
+  allShops.forEach(s => {
     const exp = s.paidUntil < now, sus = s.status === 'suspended';
     if(!exp && !sus) act++;
     if(exp) due++;
+    if(s.bk) bks++;
+
+    // Stale backup check: > 7 days or missing backup
+    const lastBkTime = s.bk ? s.bk.time : 0;
+    const isStale = (!lastBkTime || (now - lastBkTime > 7 * 864e5));
+    if(isStale) staleBackups++;
+  });
+
+  const mrrAmount = act * (adminSettings.monthlyFee || 999);
+
+  // Update Hero KPI Cards
+  $('kpi_total').textContent = allShops.length;
+  $('kpi_active').textContent = act;
+  $('kpi_due').textContent = due;
+  $('kpi_mrr').textContent = '₹' + mrrAmount.toLocaleString('en-IN');
+  $('kpi_backups').textContent = bks;
+  $('st_badge').textContent = `कुल ${allShops.length} दुकानें · ${act} सक्रिय · ${due} बकाया`;
+
+  const staleBadge = $('stale_alert_count_badge');
+  if(staleBadge){
+    if(staleBackups > 0){
+      staleBadge.textContent = `⚠️ Stale Backups: ${staleBackups}`;
+      staleBadge.style.display = 'inline-block';
+    } else {
+      staleBadge.style.display = 'none';
+    }
+  }
+
+  renderFilteredTable();
+}
+
+function setFilter(f, btn){
+  currentFilter = f;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderFilteredTable();
+}
+
+function onSearchChange(){
+  currentSearch = ($('search_input')?.value || '').trim().toLowerCase();
+  renderFilteredTable();
+}
+
+function renderFilteredTable(){
+  const now = Date.now();
+  const q = currentSearch;
+
+  const filtered = allShops.filter(s => {
+    const exp = s.paidUntil < now;
+    const sus = s.status === 'suspended';
+    const lastBkTime = s.bk ? s.bk.time : 0;
+    const isStale = (!lastBkTime || (now - lastBkTime > 7 * 864e5));
+
+    // Status filter
+    if(currentFilter === 'active' && (exp || sus)) return false;
+    if(currentFilter === 'due' && !exp) return false;
+    if(currentFilter === 'stale' && !isStale) return false;
+    if(currentFilter === 'suspended' && !sus) return false;
+    if(currentFilter === 'backup' && !s.bk) return false;
+
+    // Search filter
+    if(q){
+      const match = (s.name || '').toLowerCase().includes(q) ||
+                    (s.phone || '').toLowerCase().includes(q) ||
+                    (s.address || '').toLowerCase().includes(q) ||
+                    (s.key || '').toLowerCase().includes(q) ||
+                    (s.recoveryKey || '').toLowerCase().includes(q) ||
+                    (s.gstin || '').toLowerCase().includes(q);
+      if(!match) return false;
+    }
+    return true;
+  });
+
+  if(!filtered.length){
+    $('tb').innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center;padding:36px;color:#94a3b8">
+          <div style="font-size:24px;margin-bottom:6px">🔍</div>
+          <b>Koi dukaan nahi mili.</b>
+          <div style="font-size:12px;margin-top:4px">Search filter badal kar dobara prayas karein.</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  $('tb').innerHTML = filtered.map(s => {
+    const exp = s.paidUntil < now;
+    const sus = s.status === 'suspended';
+
+    // Days remaining
+    const diffDays = Math.ceil((s.paidUntil - now) / 864e5);
+    const validityText = exp 
+      ? `<span style="color:#ef4444;font-weight:700">${Math.abs(diffDays)} din pehle samapt</span>` 
+      : `<span style="color:#047857;font-weight:600">${diffDays} din baaki</span>`;
+
+    const statusBadge = sus 
+      ? `<span class="badge badge-suspended"><span class="badge-dot"></span>Suspended</span>` 
+      : exp 
+        ? `<span class="badge badge-due"><span class="badge-dot"></span>Payment Due</span>` 
+        : `<span class="badge badge-active"><span class="badge-dot"></span>Active</span>`;
 
     const logoHtml = s.logo 
-      ? `<div>
-           <img src="${s.logo}" class="logo-thumb"><br>
-           <button class="g" style="padding:2px 6px;font-size:11px" onclick="triggerChangeLogo('${s.id}')">✏️ Badlein</button>
-           <button class="s" style="padding:2px 6px;font-size:11px;color:#c00" onclick="removeShopLogo('${s.id}')">✕</button>
+      ? `<div style="display:flex;align-items:center;gap:6px">
+           <div class="logo-preview-box"><img src="${s.logo}"></div>
+           <div style="display:flex;flex-direction:column;gap:2px">
+             <button class="btn btn-outline btn-sm" onclick="triggerChangeLogo('${s.id}')" title="Badlein">✏️</button>
+             <button class="btn btn-danger btn-sm" onclick="removeShopLogo('${s.id}')" title="Hatao">✕</button>
+           </div>
          </div>`
-      : `<div style="color:#777;font-size:12px">
-           <span>Logo nahi hai</span><br>
-           <button class="g" style="padding:2px 6px;font-size:11px" onclick="triggerChangeLogo('${s.id}')">+ Logo Jodein</button>
-           <button class="s" style="padding:2px 6px;font-size:11px" onclick="setShopRoyalLogo('${s.id}')">✨ Royal</button>
+      : `<div style="display:flex;flex-direction:column;gap:4px">
+           <span style="color:#94a3b8;font-size:11.5px">No Logo</span>
+           <div style="display:flex;gap:4px">
+             <button class="btn btn-outline btn-sm" onclick="triggerChangeLogo('${s.id}')">+ Logo</button>
+             <button class="btn btn-outline btn-sm" onclick="setShopRoyalLogo('${s.id}')">✨</button>
+           </div>
          </div>`;
+
+    // Backup health evaluation
+    let bkHealthHtml = '';
+    if(!s.bk){
+      bkHealthHtml = `
+        <div style="color:#dc2626;font-size:11.5px;font-weight:700">⚠️ Backup Nahi Hai</div>
+        <button class="btn btn-outline btn-sm" style="font-size:10.5px;padding:2px 6px;margin-top:3px;color:#dc2626;border-color:#fca5a5" onclick="sendBackupAlertWA('${s.id}')">📲 Alert WA</button>
+      `;
+    } else {
+      const ageHours = (now - s.bk.time) / 36e5;
+      const ageDays = Math.floor(ageHours / 24);
+      let dotColor = '#10b981', healthLabel = 'Healthy';
+      if(ageDays >= 7){
+        dotColor = '#ef4444'; healthLabel = '⚠️ Stale (>7 days)';
+      } else if(ageDays >= 2){
+        dotColor = '#f59e0b'; healthLabel = 'Aging';
+      }
+
+      bkHealthHtml = `
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${dotColor}"></span>
+          <b style="font-size:11.5px;color:${dotColor}">${healthLabel}</b>
+        </div>
+        <div style="font-size:11.5px;color:#475569;margin-top:2px">${dt(s.bk.time)}</div>
+        <div style="font-size:11px;color:#64748b">${Math.round(s.bk.size / 1024)} KB · <a href="/api/admin/shops/${s.id}/backup/${s.bk.name}" style="color:#2563eb;font-weight:700;text-decoration:none" download>📥 Download</a></div>
+        ${ageDays >= 7 ? `<button class="btn btn-outline btn-sm" style="font-size:10px;padding:1px 5px;margin-top:2px;color:#dc2626;border-color:#fca5a5" onclick="sendBackupAlertWA('${s.id}')">📲 Alert WA</button>` : ''}
+      `;
+    }
+
+    const showRenewalBtn = (exp || diffDays <= 7);
 
     return `
       <tr>
         <td>
-          <b>${s.name}</b><br>
-          <span style="color:#555">📞 ${s.phone || '-'}</span><br>
-          <small style="color:#777">${s.address || '-'}${s.gstin ? ' | GST: ' + s.gstin : ''}</small>
+          <div style="font-weight:800;font-size:13.5px;color:#0f172a">${s.name}</div>
+          <div style="font-size:12px;color:#475569;margin-top:2px;display:flex;align-items:center;gap:8px">
+            <span>📞 <a href="tel:${s.phone||''}" style="color:inherit;text-decoration:none"><b>${s.phone || '-'}</b></a></span>
+            ${s.phone ? `<a href="https://wa.me/91${s.phone.replace(/[^0-9]/g,'')}?text=Hello" target="_blank" style="color:#10b981;font-weight:700;text-decoration:none">💬 WA</a>` : ''}
+          </div>
+          <div style="font-size:11.5px;color:#64748b;margin-top:2px">
+            📍 ${s.address || '-'}${s.gstin ? ' | <b>GST:</b> ' + s.gstin : ''}
+          </div>
         </td>
+
         <td style="white-space:nowrap">${logoHtml}</td>
-        <td><code>${s.key}</code><br><span style="font-size:11px;color:#666">${s.deviceId ? '💻 Active Device Linked' : 'Khali (Abhi install nahi hua)'}</span></td>
+
+        <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="code-badge">${s.key}</span>
+            <button class="copy-btn" onclick="copyText('${s.key}', 'License Key Copy Ho Gayi!')" title="Copy License Key">📋</button>
+          </div>
+          <div style="font-size:11px;color:${s.deviceId ? '#047857' : '#94a3b8'};margin-top:4px;display:flex;align-items:center;gap:4px">
+            <span>${s.deviceId ? '💻 Device Connected' : '⚪ Not Linked Yet'}</span>
+          </div>
+        </td>
+
         <td>
           ${s.recoveryKey ? `
             <div style="display:flex;align-items:center;gap:6px">
-              <code style="font-size:13px;letter-spacing:1px;font-weight:700;background:#e6f4ea;color:#137333;padding:4px 8px;border:1px solid #ceead6;border-radius:5px">${s.recoveryKey}</code>
-              <button class="s" onclick="copyRecovery('${s.recoveryKey}')" title="Recovery Key Copy Karein" style="padding:2px 6px;font-size:11px">📋 Copy</button>
+              <span class="code-badge recovery-badge">${s.recoveryKey}</span>
+              <button class="copy-btn" onclick="copyText('${s.recoveryKey}', 'Recovery Key Copy Ho Gayi!')" title="Copy Recovery Key">📋</button>
             </div>
           ` : `
-            <span style="color:#888;font-size:12px;font-style:italic">Abhi nahi bani</span>
+            <span style="color:#94a3b8;font-size:12px;font-style:italic">Abhi nahi bani</span>
           `}
         </td>
-        <td class="${exp ? 'bad' : 'ok'}">${new Date(s.paidUntil).toLocaleDateString('en-IN')}</td>
-        <td>${sus ? '🚫 Suspended' : exp ? '⏰ Payment Baaki' : '✅ Active'}</td>
-        <td>${dt(s.lastSeen)}</td>
-        <td>${s.bk ? dt(s.bk.time) + ' (' + Math.round(s.bk.size / 1024) + ' KB)<br><a href="/api/admin/shops/' + s.id + '/backup/' + s.bk.name + '">Download</a>' : '—'}</td>
+
+        <td>
+          <div style="font-weight:700">${new Date(s.paidUntil).toLocaleDateString('en-IN')}</div>
+          <div style="font-size:11.5px;margin-top:2px">${validityText}</div>
+        </td>
+
+        <td>${statusBadge}</td>
+
+        <td style="font-size:12px;color:#475569">${dt(s.lastSeen)}</td>
+
+        <td>${bkHealthHtml}</td>
+
         <td style="text-align:right;white-space:nowrap">
-          <button onclick="x('${s.id}','extend',1)">+1 Mahina</button>
-          <button onclick="x('${s.id}','extend',3)">+3</button>
-          <button onclick="x('${s.id}','${sus ? 'resume' : 'suspend'}')">${sus ? 'Chalu karo' : 'Band karo'}</button>
-          <button onclick="x('${s.id}','reset')" title="Computer badalne ke liye device reset">Device Reset</button>
-          <button class="d" onclick="del('${s.id}')">✕</button>
+          <div style="display:flex;gap:4px;justify-content:flex-end;align-items:center;margin-bottom:4px">
+            ${showRenewalBtn ? `
+              <button class="btn btn-outline btn-sm" onclick="sendRenewalReminderWA('${s.id}')" title="1-Click WhatsApp Subscription Renewal Notice" style="border-color:#f59e0b;color:#b45309;background:#fffbeb;font-weight:700">📲 तगादा</button>
+            ` : ''}
+            <button class="btn btn-outline btn-sm" onclick="sendShopOnboardingWA('${s.id}')" title="Grahak ko WhatsApp Onboarding Message bhejein" style="border-color:#10b981;color:#047857;background:#ecfdf5;font-weight:700">📲 Info</button>
+            <button class="btn btn-outline btn-sm" onclick="x('${s.id}','extend',1)" title="Extend 1 Month">+1 Mo</button>
+            <button class="btn btn-outline btn-sm" onclick="x('${s.id}','extend',3)" title="Extend 3 Months">+3</button>
+            <button class="btn btn-outline btn-sm" onclick="x('${s.id}','extend',12)" title="Extend 1 Year">+1 Yr</button>
+          </div>
+          <div style="display:flex;gap:4px;justify-content:flex-end;align-items:center">
+            <button class="btn btn-outline btn-sm" onclick="x('${s.id}','reset')" title="Computer badalne ke liye device reset">💻 Reset</button>
+            <button class="btn btn-outline btn-sm" onclick="x('${s.id}','${sus ? 'resume' : 'suspend'}')">${sus ? '▶️ Chalu' : '⏸️ Band'}</button>
+            <button class="btn btn-danger btn-sm" onclick="del('${s.id}')" title="Delete Shop">🗑️</button>
+          </div>
         </td>
       </tr>
     `;
   }).join('');
-  
-  $('st').textContent = `Kul ${a.length} dukaan · ${act} chalu · ${due} ki payment baaki`;
 }
 
-const x = async(id, a, m) => { await call(`/api/admin/shops/${id}/${a}`, 'POST', { months: m }); load(); };
-const del = async id => { if(confirm('Pakka hatana hai?')){ await call('/api/admin/shops/' + id, 'DELETE'); load(); } };
+// Action Handlers
+const x = async(id, a, m) => {
+  await call(`/api/admin/shops/${id}/${a}`, 'POST', { months: m });
+  showToast(`Aapka action '${a}' safalta se lagoo ho gaya!`);
+  load();
+};
+
+const del = async id => {
+  const target = allShops.find(s => s.id === id);
+  const name = target ? target.name : 'Dukaan';
+  if(confirm(`⚠️ DHYAN DEIN:\n\nKya aap pakka "${name}" ko admin panel se hatana chahte hain?\nIs dukaan ka pura data aur license hamesha ke liye mita diya jayega.`)){
+    await call('/api/admin/shops/' + id, 'DELETE');
+    showToast('Dukaan safalta se hata di gayi', '🗑️');
+    load();
+  }
+};
 
 async function addShop(){
   const nm = $('nm').value.trim();
-  if(!nm){ alert('Dukaan ka naam likhein'); return; }
+  if(!nm){ alert('Dukaan ka naam darj karein'); return; }
 
-  await call('/api/admin/shops', 'POST', {
+  const res = await call('/api/admin/shops', 'POST', {
     name: nm,
     phone: $('ph').value.trim(),
     address: $('addr').value.trim(),
@@ -274,8 +1483,9 @@ async function addShop(){
 
   $('nm').value = $('ph').value = $('addr').value = $('gst').value = '';
   clearAdminLogo();
+  closeAddModal();
   load();
-  alert('✅ Nayi Dukaan safaltapoorvak register ho gayi hai!\nLicense Key generate ho chuki hai.');
+  showToast('🎉 Nayi Dukaan safaltapoorvak register ho gayi!');
 }
 
 function triggerChangeLogo(shopId){
@@ -303,7 +1513,7 @@ function commitChangeLogo(e){
       const dataUrl = cv.toDataURL('image/png');
       await call(`/api/admin/shops/${currentTargetShopId}/logo`, 'POST', { logo: dataUrl });
       load();
-      alert('✅ Dukaan ka logo update ho gaya!');
+      showToast('Dukaan ka logo update ho gaya!');
     };
     img.src = ev.target.result;
   };
@@ -314,20 +1524,135 @@ async function setShopRoyalLogo(shopId){
   if(!confirm('Is dukaan par Royal Jewellery default logo lagana chahte hain?')) return;
   await call(`/api/admin/shops/${shopId}/logo`, 'POST', { logo: DEFAULT_ROYAL_LOGO });
   load();
+  showToast('✨ Royal Logo set ho gaya!');
 }
 
 async function removeShopLogo(shopId){
   if(!confirm('Dukaan ka logo hatana chahte hain?')) return;
   await call(`/api/admin/shops/${shopId}/logo`, 'POST', { logo: null });
   load();
+  showToast('Logo hata diya gaya');
 }
 
-function copyRecovery(k){
+function copyText(txt, toastMsg){
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(k).then(() => alert('✅ Recovery Key Copy Ho Gayi:\n' + k)).catch(() => prompt('Recovery Key Copy Karein:', k));
+    navigator.clipboard.writeText(txt).then(() => showToast(toastMsg || 'Copied!'));
   } else {
-    prompt('Recovery Key Copy Karein:', k);
+    prompt('Copy karein:', txt);
   }
+}
+
+// 📲 1-Click WhatsApp Onboarding Message Generator
+function sendShopOnboardingWA(shopId){
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+
+  const phone = s.phone || prompt('Grahak / Dukaan ka WhatsApp Number darj karein:');
+  if(!phone) return;
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const p = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+
+  let msg = `✨ *नमस्ते ${(s.name || 'ज्वेलर्स').toUpperCase()} जी!* ✨\n`;
+  msg += `*Sone Sathi Jewellery ERP Software* में आपका स्वागत है।\n\n`;
+  msg += `आपके प्रतिष्ठान के लिए सॉफ़्टवेयर सफलतापूर्वक एक्टिवेट कर दिया गया है:\n\n`;
+  msg += `🔑 *आपकी License Key:* \`${s.key}\`\n`;
+  if(s.recoveryKey){
+    msg += `🛡️ *मालिक Passkey Recovery Key:* \`${s.recoveryKey}\`\n`;
+  }
+  msg += `📅 *सक्रिय सदस्यता वैधता:* ${new Date(s.paidUntil).toLocaleDateString('en-IN')} तक\n\n`;
+  msg += `📥 *सॉफ़्टवेयर डाउनलोड लिंक:* https://sone-sathi-server.onrender.com\n\n`;
+  msg += `💡 *शुरुआत कैसे करें:*\n`;
+  msg += `1. सॉफ़्टवेयर खोलें और ऊपर दी गई License Key दर्ज करें।\n`;
+  msg += `2. अपना 4-अंकीय सुरक्षित मालिक Passkey बनाएं।\n`;
+  msg += `3. अपनी दुकान के नाम व जीएसटी सहित बिलिंग व स्टॉक तुरंत शुरू करें।\n\n`;
+  msg += `📞 किसी भी सहायता या प्रश्न के लिए हमसे इसी नंबर पर संपर्क करें। धन्यवाद!\n`;
+  msg += `_— Sone Sathi Customer Care Team_`;
+
+  window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// 📲 1-Click WhatsApp Subscription Renewal Reminder Generator
+function sendRenewalReminderWA(shopId){
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+
+  const phone = s.phone || prompt('Grahak / Dukaan ka WhatsApp Number darj karein:');
+  if(!phone) return;
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const p = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+
+  const now = Date.now();
+  const exp = s.paidUntil < now;
+  const diffDays = Math.ceil((s.paidUntil - now) / 864e5);
+  const expiryDateStr = new Date(s.paidUntil).toLocaleDateString('en-IN');
+  const fee = adminSettings.monthlyFee || 999;
+  const upiId = adminSettings.upiId || 'sone-sathi@upi';
+  const upiName = adminSettings.upiName || 'Sone Sathi Software';
+
+  let msg = `✨ *नमस्ते ${(s.name || 'ज्वेलर्स').toUpperCase()} जी!* ✨\n`;
+  msg += `*Sone Sathi Jewellery Software* सदस्यता नवीनीकरण (Renewal) सूचना:\n\n`;
+
+  if(exp){
+    msg += `⚠️ आपके सॉफ़्टवेयर की मासिक वैधता *${expiryDateStr}* को समाप्त हो चुकी है।\n`;
+  } else {
+    msg += `📅 आपके सॉफ़्टवेयर की मासिक वैधता *${expiryDateStr}* को समाप्त हो रही है (${diffDays} दिन शेष)।\n`;
+  }
+
+  msg += `💰 *मासिक रिन्यूअल शुल्क:* ₹${fee}/-\n\n`;
+  msg += `💳 *भुगतान के लिए UPI ID:* \`${upiId}\`\n`;
+  msg += `(GPay / PhonePe / Paytm / BHIM UPI)\n\n`;
+  msg += `📲 *सीधा 1-Click UPI लिंक:* upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${fee}&cu=INR\n\n`;
+  msg += `दुकान पर बिना किसी रुकावट के बिलिंग, बारकोड टैगिंग व हिसाब जारी रखने के लिए कृपया समय पर भुगतान पूर्ण करें। धन्यवाद!\n\n`;
+  msg += `_— Sone Sathi Billing & Support Team_`;
+
+  window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// 📲 Stale Backup Alert WhatsApp
+function sendBackupAlertWA(shopId){
+  const s = allShops.find(x => x.id === shopId);
+  if(!s) return;
+
+  const phone = s.phone || prompt('Grahak ka WhatsApp Number:');
+  if(!phone) return;
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const p = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+
+  let msg = `⚠️ *सुरक्षा सूचना: ${(s.name || 'ज्वेलर्स').toUpperCase()}*\n\n`;
+  msg += `आपके *Sone Sathi Jewellery Software* का ऑटोमैटिक क्लाउड बैकअप पिछले कुछ दिनों से सर्वर पर सिंक नहीं हुआ है।\n\n`;
+  msg += `💡 *कृपया यह जांचें:*\n`;
+  msg += `1. दुकान के कंप्यूटर का इंटरनेट कनेक्शन चालू है या नहीं।\n`;
+  msg += `2. सॉफ़्टवेयर खोलकर ऊपर दिए गए *[☁️ Backup]* बटन पर क्लिक करके *"Cloud Sync Now"* दबाएं।\n\n`;
+  msg += `दुकान का बिलिंग डेटा सुरक्षित रखना हमारी सर्वोच्च प्राथमिकता है। सहायता के लिए हमें संपर्क करें।\n`;
+  msg += `_— Sone Sathi Data Safety Support_`;
+
+  window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// 📥 Export Master Shops CSV
+function exportShopsCSV(){
+  if(!allShops.length){ alert('Koi shop data uplabdh nahi hai.'); return; }
+
+  let csv = `\uFEFF`; // UTF-8 BOM
+  csv += `SONE SATHI JEWELLERY ERP - REGISTERED CLIENTS DIRECTORY\n`;
+  csv += `Export Date,${new Date().toLocaleDateString('en-IN')}\n\n`;
+
+  csv += `Shop Name,Contact Mobile,Address,GSTIN,License Key,Recovery Key,Paid Until,Status,Device Linked,Last Online,Backup Health,Backup Date\n`;
+  allShops.forEach(s => {
+    const exp = s.paidUntil < Date.now();
+    const sus = s.status === 'suspended';
+    const status = sus ? 'Suspended' : (exp ? 'Payment Due' : 'Active');
+    const bkHealth = !s.bk ? 'No Backup' : ((Date.now() - s.bk.time > 7 * 864e5) ? 'Stale' : 'Healthy');
+    csv += `"${(s.name||'').replace(/"/g,'""')}","${s.phone||''}","${(s.address||'').replace(/"/g,'""')}","${s.gstin||''}","${s.key}","${s.recoveryKey||''}","${new Date(s.paidUntil).toLocaleDateString('en-IN')}","${status}","${s.deviceId ? 'Yes' : 'No'}","${dt(s.lastSeen)}","${bkHealth}","${s.bk ? dt(s.bk.time) : '-'}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Sone_Sathi_Registered_Shops_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('📥 Master Shops CSV Downloaded!');
 }
 
 load();
