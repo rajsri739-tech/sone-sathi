@@ -590,6 +590,9 @@ tbody tr:hover {
       <button class="btn btn-secondary btn-sm" onclick="load()" title="Data Refresh">
         <span>🔄 Refresh</span>
       </button>
+      <button class="btn btn-outline btn-sm" onclick="adminLogout()" title="Admin Panel se Logout karein" style="border-color:#ef4444;color:#f87171;background:rgba(239,68,68,0.1);font-weight:700">
+        <span>🚪 Logout</span>
+      </button>
     </div>
   </div>
 </header>
@@ -2489,6 +2492,17 @@ function sendMigrationGuideWA(shopId){
   msg += `_— Sone Sathi Migration Support_`;
 
   window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// 🚪 Admin Secure Logout
+async function adminLogout(){
+  if(!confirm('क्या आप Sone Sathi Admin Console से सुरक्षित लॉगआउट करना चाहते हैं?')) return;
+  try {
+    await fetch('/api/admin/logout', {
+      headers: { 'Authorization': 'Basic ' + btoa('logout:invalid') }
+    });
+  } catch(_) {}
+  window.location.href = '/admin/logout';
 }
 
 load();
