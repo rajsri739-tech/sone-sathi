@@ -1,14 +1,109 @@
 // Sone Sathi license server + admin panel
 const express=require('express'),crypto=require('crypto'),fs=require('fs'),path=require('path'),zlib=require('zlib');
+const { MongoClient } = require('mongodb');
 const D=__dirname,DB=path.join(D,'data.json'),KF=path.join(D,'keys.json'),BK=path.join(D,'backups');
 const PASS=process.env.ADMIN_PASSWORD||'admin123',PORT=process.env.PORT||3000,DAY=864e5;
+const MONGODB_URI=process.env.MONGODB_URI||process.env.MONGO_URL||'';
+let mongoDb=null,mongoClient=null;
+
 let keys;
 if(fs.existsSync(KF))keys=JSON.parse(fs.readFileSync(KF));
 else{const k=crypto.generateKeyPairSync('ed25519');keys={pub:k.publicKey.export({type:'spki',format:'pem'}),priv:k.privateKey.export({type:'pkcs8',format:'pem'})};fs.writeFileSync(KF,JSON.stringify(keys))}
 const appDir=path.join(D,'..','shop-app');
 if(fs.existsSync(appDir))fs.writeFileSync(path.join(appDir,'public.pem'),keys.pub);
-const load=()=>fs.existsSync(DB)?JSON.parse(fs.readFileSync(DB)):{shops:[]};
-const save=d=>fs.writeFileSync(DB,JSON.stringify(d,null,1));
+
+let dataCache = fs.existsSync(DB) ? JSON.parse(fs.readFileSync(DB)) : { shops: [] };
+const load = () => dataCache;
+
+function save(d) {
+  dataCache = d;
+  try { fs.writeFileSync(DB, JSON.stringify(d, null, 1)); } catch (_) {}
+  if (mongoDb) {
+    (async () => {
+      try {
+        const confCol = mongoDb.collection('config');
+        const shopsCol = mongoDb.collection('shops');
+        if (d.announcement !== undefined) {
+          await confCol.updateOne({ _id: 'announcement' }, { $set: { data: d.announcement } }, { upsert: true });
+        }
+        if (d.adminSettings !== undefined) {
+          await confCol.updateOne({ _id: 'adminSettings' }, { $set: { data: d.adminSettings } }, { upsert: true });
+        }
+        if (Array.isArray(d.shops)) {
+          const currentIds = d.shops.map(s => s.id);
+          await shopsCol.deleteMany({ id: { $nin: currentIds } });
+          for (const s of d.shops) {
+            await shopsCol.updateOne({ id: s.id }, { $set: s }, { upsert: true });
+          }
+        }
+      } catch (e) {
+        console.error('MongoDB async save error:', e.message);
+      }
+    })();
+  }
+}
+
+async function initMongo() {
+  if (!MONGODB_URI) {
+    console.log('ℹ️ MONGODB_URI nahi mila. Local data.json & keys.json use ho raha hai.');
+    return;
+  }
+  try {
+    console.log('Connecting to MongoDB Atlas...');
+    mongoClient = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
+    await mongoClient.connect();
+    mongoDb = mongoClient.db('sone_sathi_db');
+    console.log('✅ MongoDB Atlas connected successfully! Zero data loss enabled.');
+
+    const confCol = mongoDb.collection('config');
+    const shopsCol = mongoDb.collection('shops');
+
+    // 1. Keys sync
+    const savedKeys = await confCol.findOne({ _id: 'keys' });
+    if (savedKeys && savedKeys.pub && savedKeys.priv) {
+      keys = { pub: savedKeys.pub, priv: savedKeys.priv };
+      try { fs.writeFileSync(KF, JSON.stringify(keys)); } catch(_) {}
+      console.log('🔑 Loaded persistent signing keys from MongoDB Atlas.');
+    } else {
+      await confCol.updateOne({ _id: 'keys' }, { $set: { pub: keys.pub, priv: keys.priv } }, { upsert: true });
+      console.log('🔑 Saved initial signing keys to MongoDB Atlas.');
+    }
+
+    // 2. Announcement sync
+    const savedAnn = await confCol.findOne({ _id: 'announcement' });
+    if (savedAnn && savedAnn.data) {
+      dataCache.announcement = savedAnn.data;
+    }
+
+    // 3. Admin settings sync
+    const savedSet = await confCol.findOne({ _id: 'adminSettings' });
+    if (savedSet && savedSet.data) {
+      dataCache.adminSettings = savedSet.data;
+    }
+
+    // 4. Shops sync
+    const count = await shopsCol.countDocuments();
+    if (count > 0) {
+      const remoteShops = await shopsCol.find({}).toArray();
+      dataCache.shops = remoteShops.map(s => {
+        const { _id, ...rest } = s;
+        return rest;
+      });
+      try { fs.writeFileSync(DB, JSON.stringify(dataCache, null, 1)); } catch(_) {}
+      console.log(`🏢 Loaded ${dataCache.shops.length} shops permanently from MongoDB Atlas.`);
+    } else if (dataCache.shops && dataCache.shops.length > 0) {
+      console.log(`Migrating ${dataCache.shops.length} local shops to MongoDB Atlas...`);
+      for (const s of dataCache.shops) {
+        await shopsCol.updateOne({ id: s.id }, { $set: s }, { upsert: true });
+      }
+    }
+  } catch (err) {
+    console.error('⚠️ MongoDB Atlas connection failed:', err.message, '\nFallback to local disk storage.');
+    mongoDb = null;
+  }
+}
+initMongo();
+
 const sign=p=>{const b=Buffer.from(JSON.stringify(p));return b.toString('base64')+'.'+crypto.sign(null,b,crypto.createPrivateKey(keys.priv)).toString('base64')};
 const mkKey=()=>'SONE-'+[1,2,3].map(()=>crypto.randomBytes(2).toString('hex').toUpperCase()).join('-');
 const app=express();app.use(express.json({limit:'50mb'}));
@@ -32,8 +127,14 @@ app.post('/api/license/check',(req,res)=>{
     address:s.address||'',
     phone:s.phone||'',
     gstin:s.gstin||'',
-    name:s.name
+    name:s.name,
+    announcement: d.announcement || null
   });
+});
+
+app.get('/api/announcement',(req,res)=>{
+  const d=load();
+  res.json(d.announcement||{active:false,text:'',type:'info'});
 });
 
 app.post('/api/license/recovery-key',(req,res)=>{
@@ -68,12 +169,37 @@ app.post('/api/backup/upload',(q,r)=>{const s=shopAuth(q,r);if(!s)return;const {
   if(recoveryKey && typeof recoveryKey === 'string' && recoveryKey.trim()){
     x.recoveryKey = recoveryKey.trim().toUpperCase();
   }
-  save(d);r.json({ok:1})});
+  save(d);
+  if (mongoDb) {
+    (async () => {
+      try {
+        await mongoDb.collection('backups').updateOne(
+          { _id: `${s.id}_latest` },
+          { $set: { shopId: s.id, name: 'latest.json.gz', gz: gz, size: buf.length, time: Date.now() } },
+          { upsert: true }
+        );
+      } catch(e) { console.error('Mongo backup upload error:', e.message); }
+    })();
+  }
+  r.json({ok:1})});
 app.post('/api/backup/list',(q,r)=>{const s=shopAuth(q,r);if(s)r.json({shop:s.name,list:bkList(s)})});
-app.post('/api/backup/download',(q,r)=>{const s=shopAuth(q,r);if(!s)return;const f=String(q.body.name||'');if(!BN.test(f))return r.sendStatus(400);
-  const p=path.join(BK,s.id,f);if(!fs.existsSync(p))return r.status(404).json({error:'Backup nahi mila'});
-  const d=load(),x=d.shops.find(y=>y.id===s.id);x.bkDevice=q.body.deviceId;save(d); // restore karne wala computer ab "asli" ban gaya
-  r.json({gz:fs.readFileSync(p).toString('base64')})});
+app.post('/api/backup/download',async(q,r)=>{const s=shopAuth(q,r);if(!s)return;const f=String(q.body.name||'');if(!BN.test(f))return r.sendStatus(400);
+  const p=path.join(BK,s.id,f);
+  if(fs.existsSync(p)){
+    const d=load(),x=d.shops.find(y=>y.id===s.id);x.bkDevice=q.body.deviceId;save(d);
+    return r.json({gz:fs.readFileSync(p).toString('base64')});
+  }
+  if(mongoDb){
+    try{
+      const doc=await mongoDb.collection('backups').findOne({shopId:s.id,name:f});
+      if(doc&&doc.gz){
+        const d=load(),x=d.shops.find(y=>y.id===s.id);x.bkDevice=q.body.deviceId;save(d);
+        return r.json({gz:doc.gz});
+      }
+    }catch(_){}
+  }
+  return r.status(404).json({error:'Backup nahi mila'});
+});
 
 // ---- admin (password protected) ----
 const auth=(req,res,next)=>{const h=Buffer.from((req.headers.authorization||'').split(' ')[1]||'','base64').toString();
@@ -108,4 +234,22 @@ app.post('/api/admin/shops/:id/recovery-key',(q,r)=>{const d=load(),s=d.shops.fi
 app.post('/api/admin/shops/:id/:act',(q,r)=>{const d=load(),s=d.shops.find(x=>x.id===q.params.id);if(!s)return r.sendStatus(404);
   const a=q.params.act;if(a==='suspend')s.status='suspended';else if(a==='resume')s.status='active';else if(a==='reset')s.deviceId=null;else return r.sendStatus(400);save(d);r.json({ok:1})});
 app.delete('/api/admin/shops/:id',(q,r)=>{const d=load();d.shops=d.shops.filter(x=>x.id!==q.params.id);save(d);r.json({ok:1})});
+
+// Announcement / In-App Broadcast endpoints
+app.get('/api/admin/announcement',(q,r)=>{const d=load();r.json(d.announcement||{active:false,text:'',type:'info'})});
+app.post('/api/admin/announcement',(q,r)=>{const d=load();d.announcement={active:!!q.body.active,text:String(q.body.text||'').trim(),type:q.body.type||'info',updatedAt:Date.now()};save(d);r.json({ok:1,announcement:d.announcement})});
+
+// Admin Pricing & Payment UPI Settings
+app.get('/api/admin/settings',(q,r)=>{const d=load();r.json(d.adminSettings||{upiId:'sone-sathi@upi',upiName:'Sone Sathi Software',monthlyFee:999,quarterlyFee:2499,yearlyFee:7999})});
+app.post('/api/admin/settings',(q,r)=>{const d=load();d.adminSettings={upiId:String(q.body.upiId||'').trim(),upiName:String(q.body.upiName||'').trim(),monthlyFee:Number(q.body.monthlyFee)||999,quarterlyFee:Number(q.body.quarterlyFee)||2499,yearlyFee:Number(q.body.yearlyFee)||7999};save(d);r.json({ok:1,settings:d.adminSettings})});
+
+// Database Health & Storage status
+app.get('/api/admin/db-status',(q,r)=>{
+  r.json({
+    isMongo: !!mongoDb,
+    uriConfigured: !!MONGODB_URI,
+    storageType: mongoDb ? 'MongoDB Atlas (Permanent Cloud)' : 'Local JSON Disk'
+  });
+});
+
 app.listen(PORT,()=>console.log('Server chal raha: http://localhost:'+PORT+'/admin  (password: '+(process.env.ADMIN_PASSWORD?'set':'admin123 - badal do!')+')'));
