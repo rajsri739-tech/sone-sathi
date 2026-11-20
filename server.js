@@ -302,6 +302,37 @@ app.post('/api/backup/download',async(q,r)=>{const s=shopAuth(q,r);if(!s)return;
   return r.status(404).json({error:'Backup nahi mila'});
 });
 
+// ---- admin logout (clears HTTP Basic Auth session) ----
+app.get(['/admin/logout', '/api/admin/logout'], (req, res) => {
+  res.set('WWW-Authenticate', 'Basic realm="Admin"').status(401).send(`
+    <!DOCTYPE html>
+    <html lang="hi">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Logged Out - Sone Sathi Admin</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 40px 32px; border-radius: 16px; text-align: center; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        .icon { font-size: 52px; margin-bottom: 14px; }
+        h2 { margin: 0 0 10px; font-size: 22px; color: #fff; font-weight: 800; }
+        p { color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+        .btn { display: inline-block; background: #d97706; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 800; font-size: 14px; transition: background 0.2s; }
+        .btn:hover { background: #b45309; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="icon">🔒</div>
+        <h2>सुरक्षित लॉगआउट सफल (Logged Out)</h2>
+        <p>आप Sone Sathi Admin Console से सुरक्षित रूप से लॉगआउट हो चुके हैं। दोबारा एडमिन एक्सेस के लिए नीचे क्लिक करें।</p>
+        <a href="/admin" class="btn">🔑 पुनः लॉगिन करें (Login Again)</a>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
 // ---- admin (password protected) ----
 const auth=(req,res,next)=>{const h=Buffer.from((req.headers.authorization||'').split(' ')[1]||'','base64').toString();
   if(h.slice(h.indexOf(':')+1)===PASS)return next();res.set('WWW-Authenticate','Basic realm="Admin"').status(401).send('Login chahiye')};
